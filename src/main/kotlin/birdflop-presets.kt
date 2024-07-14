@@ -27,7 +27,7 @@ val birdflopGradients = mapOf(
         "#1488CC",
         "2B32B2"
     ),
-    "Waffle" to arrrayOF (
+    "Vice City" to arrrayOF (
         "#1488CC",
         "#2B32B2"
     ),
