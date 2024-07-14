@@ -4,7 +4,7 @@ package chattore
 
 val birdflopGradients = mapOf(
     "birdflop" to arrayOf(
-        "##084CFB",
+        "#084CFB",
         "#ADF3FD"
     ),
     "SimplyMC" to arrrayOF (
