@@ -47,6 +47,10 @@ object ChattORESpec : ConfigSpec("") {
         val joinDiscord by optional("**<player> has joined the network**")
         val leaveDiscord by optional("**<player> has left the network**")
     }
-    val nicknamePresets by optional(pridePresets + birdflopPresets + playerPresets)
+    object nicknamePresets : ConfigSpec() {
+        val pride by optional(pridePresets)
+        val birdflop by optional(birdflopPresets)
+        val players by optional(playerPresets)
+    }
 
 }
