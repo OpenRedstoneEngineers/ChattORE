@@ -525,11 +525,11 @@ val birdflopColors = mapOf(
         "#084CFB",
         "#ADF3FD"
     ),
-    "SimplyMC" to arrrayOf (
+    "SimplyMC" to arrayOf (
         "#084CFB",
         "#ADF3FD"
     ),
-    "Rainbow" to arrrayOf (
+    "Rainbow" to arrayOf (
         "#FF0000",
         "#FF7F00",
         "#FFFF00",
@@ -537,34 +537,34 @@ val birdflopColors = mapOf(
         "#0000FF",
         "#EAE4AA"
     ),
-    "Skyline" to arrrayOf (
+    "Skyline" to arrayOf (
         "#1488CC",
         "#2B32B2"
     ),
-    "Mango" to arrrayOf (
+    "Mango" to arrayOf (
         "#1488CC",
         "#2B32B2"
     ),
-    "Vice City" to arrrayOf (
+    "Vice City" to arrayOf (
         "#1488CC",
         "#2B32B2"
     ),
-    "Dawn" to arrrayOf (
+    "Dawn" to arrayOf (
         "#1488CC",
         "#2B32B2"
     ),
-    "Rose" to arrrayOf (
+    "Rose" to arrayOf (
         "#1488CC",
         "#2B32B2"
     ),
-    "Firewatch" to arrrayOf (
+    "Firewatch" to arrayOf (
         "#1488CC",
         "#2B32B2"
     ),        
 )
 
 val playerColors = mapOf(
-    "Waffle" to arrrayOf (
+    "Waffle" to arrayOf (
         "#1488CC",
         "#2B32B2"
     ),
