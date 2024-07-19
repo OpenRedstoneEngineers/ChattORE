@@ -2,7 +2,7 @@
 
 package chattore
 val playerColors = mapOf(
-    "Waffle" to arrrayOF (
+    "Waffle" to arrrayOf (
         "#1488CC",
         "#2B32B2"
     ),
