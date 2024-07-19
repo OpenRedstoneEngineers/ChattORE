@@ -7,11 +7,11 @@ val birdflopGradients = mapOf(
         "#084CFB",
         "#ADF3FD"
     ),
-    "SimplyMC" to arrrayOF (
+    "SimplyMC" to arrrayOf (
         "#084CFB",
         "#ADF3FD"
     ),
-    "Rainbow" to arrrayOF (
+    "Rainbow" to arrrayOf (
         "#FF0000",
         "#FF7F00",
         "#FFFF00",
@@ -19,27 +19,27 @@ val birdflopGradients = mapOf(
         "#0000FF",
         "#EAE4AA"
     ),
-    "Skyline" to arrrayOF (
+    "Skyline" to arrrayOf (
         "#1488CC",
         "#2B32B2"
     ),
-    "Mango" to arrrayOF (
+    "Mango" to arrrayOf (
         "#1488CC",
         "#2B32B2"
     ),
-    "Vice City" to arrrayOF (
+    "Vice City" to arrrayOf (
         "#1488CC",
         "#2B32B2"
     ),
-    "Dawn" to arrrayOF (
+    "Dawn" to arrrayOf (
         "#1488CC",
         "#2B32B2"
     ),
-    "Rose" to arrrayOF (
+    "Rose" to arrrayOf (
         "#1488CC",
         "#2B32B2"
     ),
-    "Firewatch" to arrrayOF (
+    "Firewatch" to arrrayOf (
         "#1488CC",
         "#2B32B2"
     ),        
