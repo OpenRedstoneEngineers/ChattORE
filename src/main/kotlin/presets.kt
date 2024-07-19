@@ -1,5 +1,6 @@
-// This file is based on hyfetch, and was last updated 2024-06-12
+// This file adds presets. PridePresets are based on hyfetch, and were last updated 2024-06-12
 // https://github.com/hykilpikonna/hyfetch/blob/7534371b05ee877cd3c4c3733b13d7c41d09c3e/hyfetch/presets.py
+
 
 package chattore
 
@@ -519,6 +520,56 @@ val prideColors = mapOf(
     ),
 )
 
-val pridePresets = prideColors.mapValues { (_, colors) ->
-        "<gradient:${colors.joinToString(':'.toString())}><username></gradient>"
-    }.toSortedMap()
+val birdflopColors = mapOf(
+    "birdflop" to arrayOf(
+        "#084CFB",
+        "#ADF3FD"
+    ),
+    "SimplyMC" to arrayOf (
+        "#084CFB",
+        "#ADF3FD"
+    ),
+    "Rainbow" to arrayOf (
+        "#FF0000",
+        "#FF7F00",
+        "#FFFF00",
+        "#00FF00",
+        "#0000FF",
+        "#EAE4AA"
+    ),
+    "Skyline" to arrayOf (
+        "#1488CC",
+        "#2B32B2"
+    ),
+    "Mango" to arrayOf (
+        "#1488CC",
+        "#2B32B2"
+    ),
+    "Vice City" to arrayOf (
+        "#1488CC",
+        "#2B32B2"
+    ),
+    "Dawn" to arrayOf (
+        "#1488CC",
+        "#2B32B2"
+    ),
+    "Rose" to arrayOf (
+        "#1488CC",
+        "#2B32B2"
+    ),
+    "Firewatch" to arrayOf (
+        "#1488CC",
+        "#2B32B2"
+    ),        
+)
+
+val playerColors = mapOf(
+    "Waffle" to arrayOf (
+        "#1488CC",
+        "#2B32B2"
+    ),
+)
+
+val pridePresets = prideColors.toGradientMinimessage()
+val birdflopPresets = birdflopColors.toGradientMinimessage()
+val playerPresets = playerColors.toGradientMinimessage()

@@ -89,10 +89,19 @@ class Nick(private val chattORE: ChattORE) : BaseCommand() {
 
     @Subcommand("presets")
     @CommandPermission("chattore.nick.preset")
-    @CommandCompletion("@username")
-    fun presets(player: Player, @Optional shownText: String?) {
+    @CommandCompletion("pride|birdflop|players")
+    fun presets(player: Player, @Optional shownText: String?, @Optional type: String?) {
+        val additionalPresets = when (type?.lowercase()) {
+            "pride" -> chattORE.config[ChattORESpec.nicknamePresets]["pride"] ?: mapOf()
+            "birdflop" -> chattORE.config[ChattORESpec.nicknamePresets]["birdflop"] ?: mapOf()
+            "players" -> chattORE.config[ChattORESpec.nicknamePresets]["players"] ?: mapOf()
+            else -> mapOf()
+        }
+        
+        val combinedPresets = chattORE.config[ChattORESpec.nicknamePresets] + additionalPresets
+
         val renderedPresets = ArrayList<Component>()
-        for ((presetName, preset) in chattORE.config[ChattORESpec.nicknamePresets]) {
+        for ((presetName, preset) in combinedPresets) {
             val applyPreset: (String) -> Component = {
                 preset.render(mapOf(
                     "username" to Component.text(it)
@@ -114,7 +123,7 @@ class Nick(private val chattORE: ChattORE) : BaseCommand() {
             }
             renderedPresets.add(rendered)
         }
-
+    
         val response = chattORE.config[ChattORESpec.format.chattore].render(
             "Available presets: <message>".render(
                 Component.join(JoinConfiguration.commas(true), renderedPresets)
