@@ -49,9 +49,9 @@ object ChattORESpec : ConfigSpec("") {
     }
     val nicknamePresets by optional(
         mapOf(
-            "pride" to prideColors.toGradientMinimessage(),
-            "birdflop" to birdflopColors.toGradientMinimessage(),
-            "players" to playerColors.toGradientMinimessage()
+            "pride" to pridePresets.toGradientMinimessage(),
+            "birdflop" to birdflopPresets.toGradientMinimessage(),
+            "players" to playerPresets.toGradientMinimessage()
         )
     )
 
