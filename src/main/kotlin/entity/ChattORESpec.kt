@@ -47,6 +47,14 @@ object ChattORESpec : ConfigSpec("") {
         val joinDiscord by optional("**<player> has joined the network**")
         val leaveDiscord by optional("**<player> has left the network**")
     }
+    
+    fun Map<String, Array<String>>.toGradientMinimessage(): Map<String, String> {
+        return this.mapValues { (_, colors) ->
+            "<gradient:${colors.joinToString(":")}><username></gradient>"
+        }
+    }
+
+    
     val nicknamePresets by optional(
         mapOf(
             "pride" to pridePresets.toGradientMinimessage(),
