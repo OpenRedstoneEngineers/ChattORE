@@ -210,5 +210,10 @@
     "command": "owner",
     "description": "Who is it? 👀",
     "localChat": "Follow this link to find information about the current owner: <aqua><click:open_url:'https://openredstone.org/owner'><hover:show_text:'Go to URL'>https://openredstone.org/owner</hover></click></aqua>"
+  },
+  {
+    "command": "rawr",
+    "description": "Rawr like a furry",
+    "globalChat": "<yellow><name><white> rawrs like a furry"
   }
 ]
