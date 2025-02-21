@@ -1,6 +1,10 @@
 package chattore.feature
 
 import chattore.*
+import co.aikar.commands.BaseCommand
+import co.aikar.commands.annotation.CommandAlias
+import co.aikar.commands.annotation.Default
+import co.aikar.commands.annotation.Single
 import com.velocitypowered.api.event.Subscribe
 import org.javacord.api.DiscordApi
 import org.javacord.api.DiscordApiBuilder
@@ -43,7 +47,7 @@ fun createDiscordFeature(
     config: DiscordConfig,
 ): Feature {
     // HAX
-    if (!config.enable) return Feature()
+    if (!config.enable) return Feature(commands = listOf(FakeDiscordCmd(plugin.messenger, config)))
     val discordNetwork = DiscordApiBuilder()
         .setToken(config.token)
         .setAllIntents()
@@ -59,6 +63,21 @@ fun createDiscordFeature(
     return Feature(
         listeners = listOf(DiscordBroadcastListener(config, discordMap, discordNetwork))
     )
+}
+
+@CommandAlias("fakediscord")
+private class FakeDiscordCmd(
+    private val messenger: Messenger,
+    private val config: DiscordConfig,
+) : BaseCommand() {
+    @Default
+    fun e(@Single a: String, b: String) {
+        messenger.broadcast(
+            config.discord,
+            "sender" toS a,
+            "message" toC messenger.prepareChatMessage(b, null),
+        )
+    }
 }
 
 private class DiscordBroadcastListener(
