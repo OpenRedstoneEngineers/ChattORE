@@ -5,6 +5,9 @@ import co.aikar.commands.BaseCommand
 import co.aikar.commands.annotation.CommandAlias
 import co.aikar.commands.annotation.CommandPermission
 import co.aikar.commands.annotation.Default
+import com.velocitypowered.api.event.EventManager
+import com.velocitypowered.api.event.ResultedEvent
+import com.velocitypowered.api.event.ResultedEvent.GenericResult
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.player.PlayerChatEvent
 import com.velocitypowered.api.proxy.Player
@@ -23,13 +26,21 @@ data class ChatConfirmationConfig(
 fun createChatFeature(
     logger: Logger,
     messenger: Messenger,
+    eventManager: EventManager,
     config: ChatConfirmationConfig,
 ): Feature {
     val flaggedMessages = ConcurrentHashMap<UUID, String>()
     return Feature(
         commands = listOf(ConfirmMessage(config, flaggedMessages, logger, messenger)),
-        listeners = listOf(ChatListener(config, flaggedMessages, logger, messenger)),
+        listeners = listOf(ChatListener(config, flaggedMessages, logger, messenger, eventManager)),
     )
+}
+
+data class ChatEvent(val player: Player, val message: String, private var result: GenericResult) : ResultedEvent<GenericResult> {
+    override fun getResult() = result
+    override fun setResult(result: GenericResult) {
+        this.result = result
+    }
 }
 
 class ChatListener(
@@ -37,32 +48,37 @@ class ChatListener(
     private val flaggedMessages: ConcurrentHashMap<UUID, String>,
     private val logger: Logger,
     private val messenger: Messenger,
+    private val eventManager: EventManager,
 ) {
     private val regexes = config.regexes.map(::Regex)
 
     @Subscribe
     fun onChatEvent(event: PlayerChatEvent) {
-        val player = event.player
-        val message = event.message
-        if (isFlagged(player, message)) return
-        logger.info("${player.username} (${player.uniqueId}): $message")
-        player.currentServer.ifPresent { server ->
-            messenger.broadcastChatMessage(server.serverInfo.name, player, message)
-        }
+        eventManager.fire(ChatEvent(event.player, event.message, GenericResult.allowed()))
+            .thenAccept { e ->
+                if (!e.result.isAllowed) return@thenAccept
+                val (player, message) = e
+                logger.info("${player.username} (${player.uniqueId}): $message")
+                player.currentServer.ifPresent { server ->
+                    messenger.broadcastChatMessage(server.serverInfo.name, player, message)
+                }
+            }
     }
 
-    private fun isFlagged(player: Player, message: String): Boolean {
+    @Subscribe
+    fun onChatEvent(event: ChatEvent) {
+        val (player, message) = event
         val matches = regexes.filter { it.containsMatchIn(message) }
         if (matches.isEmpty()) {
             flaggedMessages.remove(player.uniqueId)
-            return false
+            return
         }
         fun String.highlight(r: Regex) = r.replace(this) { match -> "<red>${match.value}</red>" }
         val highlighted = matches.fold(message, String::highlight)
         logger.info("${player.username} (${player.uniqueId}) Attempting to send flagged message: $message")
         player.sendSimpleMM(config.confirmationPrompt, highlighted)
         flaggedMessages[player.uniqueId] = message
-        return true
+        event.result = GenericResult.denied()
     }
 }
 
