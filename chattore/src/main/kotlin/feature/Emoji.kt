@@ -1,48 +1,48 @@
-package chattore.feature
+package org.openredstone.chattore.feature
 
-import chattore.ChattoreException
-import chattore.Feature
-import chattore.miniMessageDeserialize
-import chattore.render
 import co.aikar.commands.BaseCommand
 import co.aikar.commands.annotation.*
 import com.velocitypowered.api.proxy.Player
+import org.openredstone.chattore.ChattoreException
+import org.openredstone.chattore.PluginScope
+import org.openredstone.chattore.sendInfoMM
 
-data class EmojiConfig(
-    val format: String = "<gold>[</gold><red>ChattORE</red><gold>]</gold> <red><message></red>"
-)
-
-fun createEmojiFeature(
-    emojis: Map<String, String>,
-    config: EmojiConfig
-): Feature {
-    return Feature(
-        commands = listOf(Emoji(emojis, config))
+fun PluginScope.createEmojiFeature(): Emojis {
+    val emojis = loadResourceAsString("emojis.csv").lineSequence().associate { item ->
+        val parts = item.split(",")
+        parts[0] to parts[1]
+    }
+    logger.info("Loaded ${emojis.size} emojis")
+    commandManager.commandCompletions.registerCompletion("emojis") { emojis.keys }
+    registerCommands(EmojiCommand(emojis))
+    return Emojis(
+        nameToEmoji = emojis,
+        emojiToName = emojis.entries.associateBy({ it.value }) { it.key },
     )
+}
+
+class Emojis(val nameToEmoji: Map<String, String>, val emojiToName: Map<String, String>) {
+    companion object {
+        const val COMPLETION_EMOJI = "emojis"
+    }
 }
 
 @CommandAlias("emoji")
 @Description("Preview an emoji")
 @CommandPermission("chattore.emoji")
-class Emoji(
+private class EmojiCommand(
     private val emojis: Map<String, String>,
-    private val config: EmojiConfig
 ) : BaseCommand() {
-
     @Default
-    @CommandCompletion("@emojis")
+    @CommandCompletion("@${Emojis.COMPLETION_EMOJI}")
     fun default(player: Player, vararg emojiNames: String) {
         if (!emojis.keys.containsAll(emojiNames.toSet())) {
             val notEmoji = emojiNames.toSet().minus(emojis.keys)
             throw ChattoreException("The following are not valid emojis: ${notEmoji.joinToString(", ")}")
         }
         val emojiMiniMessage = emojiNames.toSet().intersect(emojis.keys).joinToString(", ") {
-            "<hover:show_text:${it}>${emojis[it]}</hover>"
+            "<hover:show_text:$it>${emojis[it]}</hover>"
         }
-        player.sendMessage(
-            config.format.render(
-                "Emojis: $emojiMiniMessage".miniMessageDeserialize()
-            )
-        )
+        player.sendInfoMM("Emojis: $emojiMiniMessage")
     }
 }

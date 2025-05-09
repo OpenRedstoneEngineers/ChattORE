@@ -1,3 +1,5 @@
+package org.openredstone.chattore.agent
+
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.decodeFromByteArray

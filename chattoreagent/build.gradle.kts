@@ -6,7 +6,7 @@ plugins {
     id("com.gradleup.shadow")
 }
 
-group = ""
+group = "org.openredstone"
 version = "1.1"
 
 repositories {

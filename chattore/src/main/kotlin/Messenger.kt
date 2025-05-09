@@ -1,8 +1,7 @@
-package chattore
+package org.openredstone.chattore
 
-import chattore.feature.DiscordBroadcastEvent
-import chattore.feature.SpyEnabled
 import com.velocitypowered.api.proxy.Player
+import com.velocitypowered.api.proxy.ProxyServer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -10,80 +9,92 @@ import kotlinx.serialization.json.jsonPrimitive
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-import java.io.FileNotFoundException
-import java.net.URL
-import java.util.*
+import net.luckperms.api.LuckPerms
+import org.openredstone.chattore.feature.DiscordBroadcastEvent
+import org.openredstone.chattore.feature.Emojis
+import org.openredstone.chattore.feature.NickPreset
+import java.net.URI
+
+fun PluginScope.createMessenger(
+    emojis: Emojis,
+    database: Storage,
+    luckPerms: LuckPerms,
+    chatBroadcastFormat: String,
+): Messenger {
+    val fileTypeMap = Json.parseToJsonElement(loadResourceAsString("filetypes.json"))
+        .jsonObject.mapValues { (_, value) -> value.jsonArray.map { it.jsonPrimitive.content } }
+        .onEach { (key, values) -> logger.info("Loaded ${values.size} of type $key") }
+    return Messenger(emojis, proxy, database, luckPerms, chatBroadcastFormat, fileTypeMap)
+}
 
 class Messenger(
-    private val plugin: ChattORE,
-    val format: String
+    emojis: Emojis,
+    private val proxy: ProxyServer,
+    private val database: Storage,
+    private val luckPerms: LuckPerms,
+    private val chatBroadcastFormat: String,
+    private val fileTypeMap: Map<String, List<String>>,
 ) {
-    private val fileTypeMap: Map<String, List<String>> =
-        plugin.javaClass.getResourceAsStream("/filetypes.json")?.let { inputStream ->
-            val jsonElement = Json.parseToJsonElement(inputStream.reader().readText())
-            inputStream.close()
-            val fileTypeMap = jsonElement.jsonObject.mapValues { (_, value) ->
-                value.jsonArray.map { it.jsonPrimitive.content }
-            }
-            fileTypeMap.forEach { (key, values) ->
-                plugin.logger.info("Loaded ${values.size} of type $key")
-            }
-            fileTypeMap
-        } ?: throw FileNotFoundException("filetypes.json not found")
+    private val urlRegex = """<?((http|https)://([\w_-]+(?:\.[\w_-]+)+)([^\s'<>]+)?)>?""".toRegex()
 
-    fun sendPrivileged(component: Component, exclude: UUID? = null, ignorable: Boolean = true) {
-        val privileged = plugin.proxy.allPlayers.filter {
-            it.hasPermission("chattore.privileged")
-                && (it.uniqueId != exclude)
-        }
-        for (user in privileged) {
-            if (ignorable) {
-                val setting = plugin.database.getSetting(SpyEnabled, user.uniqueId)
-                val spying = setting ?: false
-                if (spying) {
-                    user.sendMessage(component)
+    private val chatReplacements = listOf(
+        formatReplacement("**", "b"),
+        formatReplacement("*", "i"),
+        formatReplacement("__", "u"),
+        formatReplacement("~~", "st"),
+        buildEmojiReplacement(emojis),
+    )
+
+    private fun formatReplacement(key: String, tag: String): TextReplacementConfig =
+        TextReplacementConfig.builder()
+            .match("""((\\?)(${Regex.escape(key)}(.*?)${Regex.escape(key)}))""")
+            .replacement { result, _ ->
+                if (result.group(2).contains("\\") || result.group(4).endsWith("\\")) {
+                    result.group(3).toComponent()
+                } else {
+                    "<$tag>${result.group(4)}</$tag>".render()
                 }
-            } else {
-                user.sendMessage(component)
             }
-        }
-    }
+            .build()
+
+    private fun buildEmojiReplacement(emojis: Emojis): TextReplacementConfig =
+        TextReplacementConfig.builder()
+            .match(""":([A-Za-z0-9_\-+]+):""")
+            .replacement { result, _ ->
+                val match = result.group(1)
+                val content = emojis.nameToEmoji[match] ?: ":$match:"
+                "<hover:show_text:'$match'>$content</hover>".render()
+            }
+            .build()
 
     fun broadcastChatMessage(originServer: String, player: Player, message: String) {
         val userId = player.uniqueId
-        val userManager = plugin.luckPerms.userManager
+        val userManager = luckPerms.userManager
         val luckUser = userManager.getUser(userId) ?: return
-        val name = plugin.database.getNickname(userId) ?: player.username
-        val sender = name.render(
-            mapOf(
-                "username" to player.username.toComponent()
-            )
-        ).let {
-            "<click:run_command:'/playerprofile info ${player.username}'><message></click>".render(it)
-        }
+        val name = database.getNickname(userId) ?: NickPreset(player.username)
+        val sender =
+            "<hover:show_text:'${player.username} | <i>Click for more</i>'><click:run_command:'/playerprofile info ${player.username}'><message></click></hover>"
+                .renderSimpleC(name.render(player.username))
 
         val prefix = luckUser.cachedData.metaData.prefix
             ?: luckUser.primaryGroup.replaceFirstChar(Char::uppercaseChar)
 
-        broadcast(
-            format.render(
-                mapOf(
-                    "message" to prepareChatMessage(message, player),
-                    "sender" to sender,
-                    "username" to Component.text(player.username),
-                    "prefix" to prefix.legacyDeserialize(),
-                )
-            )
+        val compoPrefix = prefix.legacyDeserialize()
+        proxy.all.sendRichMessage(
+            chatBroadcastFormat,
+            "message" toC prepareChatMessage(message, player),
+            "sender" toC sender,
+            "prefix" toC compoPrefix,
         )
 
-        val plainPrefix = PlainTextComponentSerializer.plainText().serialize(prefix.componentize())
+        val plainPrefix = PlainTextComponentSerializer.plainText().serialize(compoPrefix)
         val discordBroadcast = DiscordBroadcastEvent(
             plainPrefix,
             player.username,
             originServer,
             message
         )
-        plugin.proxy.eventManager.fireAndForget(discordBroadcast)
+        proxy.eventManager.fireAndForget(discordBroadcast)
     }
 
     fun prepareChatMessage(
@@ -95,56 +106,45 @@ class Messenger(
         val matches = urlRegex.findAll(message).iterator()
         val builder = Component.text()
         parts.forEach { part ->
-            builder.append(part.replaceObfuscate(canObfuscate).legacyDeserialize())
+            builder.append(part.legacyDeserialize(canObfuscate))
             if (matches.hasNext()) {
                 val nextMatch = matches.next()
-                val link = URL(nextMatch.groupValues[1])
-                var type = "link"
-                var name = link.host
-                if (link.file.isNotEmpty()) {
-                    val last = link.path.split("/").last()
-                    if (last.contains('.') && !last.endsWith('.') && !last.startsWith('.')) {
-                        type = last.split('.').last()
-                        name = if (last.length > 15) {
-                            last.substring(0, 15) + "…." + type
-                        } else {
-                            last
-                        }
-                    }
-                }
-                val contentType = fileTypeMap.entries.find { type in it.value }?.key
-                val symbol = when (contentType) {
-                    "IMAGE" -> "\uD83D\uDDBC"
-                    "AUDIO" -> "\uD83D\uDD0A"
-                    "VIDEO" -> "\uD83C\uDFA5"
-                    "TEXT" -> "\uD83D\uDCDD"
-                    else -> "\uD83D\uDCCE"
-                }
-                builder.append(("<aqua><click:open_url:'$link'>" +
-                    "<hover:show_text:'<aqua>$link'>" +
-                    "[$symbol $name]" +
-                    "</hover>" +
-                    "</click><reset>").miniMessageDeserialize())
+                builder.append(formatLink(nextMatch.groupValues[1]))
             }
         }
-        return builder.build().performReplacements(plugin.chatReplacements)
+        return builder.build().performReplacements(chatReplacements)
     }
 
-    fun String.replaceObfuscate(canObfuscate: Boolean): String =
-        if (canObfuscate) {
-            this
-        } else {
-            this.replace("&k", "")
+    private fun formatLink(str: String): Component {
+        val link = URI(str).toURL()
+        var type = "link"
+        var name = link.host
+        if (link.file.isNotEmpty()) {
+            val last = link.path.split("/").last()
+            if (last.contains('.') && !last.endsWith('.') && !last.startsWith('.')) {
+                type = last.split('.').last()
+                name = if (last.length > 15) {
+                    last.substring(0, 15) + "…." + type
+                } else {
+                    last
+                }
+            }
         }
+        val contentType = fileTypeMap.entries.find { type in it.value }?.key
+        val symbol = when (contentType) {
+            "IMAGE" -> "\uD83D\uDDBC"
+            "AUDIO" -> "\uD83D\uDD0A"
+            "VIDEO" -> "\uD83C\uDFA5"
+            "TEXT" -> "\uD83D\uDCDD"
+            else -> "\uD83D\uDCCE"
+        }
+        return ("<aqua><click:open_url:'$link'>" +
+            "<hover:show_text:'<aqua>$link'>" +
+            "[$symbol $name]" +
+            "</hover>" +
+            "</click><reset>").render()
+    }
 
     private fun Component.performReplacements(replacements: List<TextReplacementConfig>): Component =
         replacements.fold(this, Component::replaceText)
-
-    fun broadcastAllBut(component: Component, player: Player) {
-        plugin.proxy.allPlayers.filter { it != player }.forEach { it.sendMessage(component) }
-    }
-
-    fun broadcast(component: Component) {
-        plugin.proxy.allPlayers.forEach { it.sendMessage(component) }
-    }
 }
