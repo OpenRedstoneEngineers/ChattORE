@@ -1,7 +1,7 @@
 // This file is based on hyfetch, and was last updated 2024-06-12
 // https://github.com/hykilpikonna/hyfetch/blob/7534371b05ee877cd3c4c3733b13d7c41d09c3e/hyfetch/presets.py
 
-package chattore
+package org.openredstone.chattore
 
 fun weighted(vararg colors: Pair<String, Int>): Array<String> =
         colors.flatMap { (value, weight) -> List(weight) { value } }.toTypedArray()

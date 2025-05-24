@@ -1,55 +1,86 @@
-package chattore.feature
+package org.openredstone.chattore.feature
 
-import chattore.Feature
-import chattore.Messenger
+import co.aikar.commands.BaseCommand
+import co.aikar.commands.annotation.CommandAlias
+import co.aikar.commands.annotation.CommandPermission
+import co.aikar.commands.annotation.Default
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.player.PlayerChatEvent
+import com.velocitypowered.api.proxy.Player
+import org.openredstone.chattore.ChattoreException
+import org.openredstone.chattore.Messenger
+import org.openredstone.chattore.PluginScope
+import org.openredstone.chattore.sendSimpleMM
 import org.slf4j.Logger
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-data class ChatConfig(
-    val discord: String = "<dark_aqua>Discord</dark_aqua> <gray>|</gray> <dark_purple><sender></dark_purple><gray>:</gray> <message>"
+data class ChatConfirmationConfig(
+    val regexes: List<String> = listOf(),
 )
 
-fun createChatFeature(
-    logger: Logger,
+fun PluginScope.createChatFeature(
     messenger: Messenger,
-    config: ChatConfig,
-): Feature {
-    return Feature(
-        listeners = listOf(ChatListener(logger, messenger, config))
-    )
+    config: ChatConfirmationConfig,
+) {
+    val flaggedMessages = ConcurrentHashMap<UUID, String>()
+    registerCommands(ConfirmMessage(flaggedMessages, logger, messenger))
+    registerListeners(ChatListener(config, flaggedMessages, logger, messenger))
 }
 
-class ChatListener(
-    val logger: Logger,
-    val messenger: Messenger,
-    val config: ChatConfig,
+private class ChatListener(
+    private val config: ChatConfirmationConfig,
+    private val flaggedMessages: ConcurrentHashMap<UUID, String>,
+    private val logger: Logger,
+    private val messenger: Messenger,
 ) {
-
-    private val flaggedMessages = ConcurrentHashMap<UUID, FlaggedMessageEvent>()
-
-    @Subscribe(priority = 32767)
-    fun onFlaggedMessageEvent(event: FlaggedMessageEvent) {
-        flaggedMessages[event.sender.uniqueId] = event
-    }
+    private val regexes = config.regexes.map(::Regex)
 
     @Subscribe
     fun onChatEvent(event: PlayerChatEvent) {
-        flaggedMessages[event.player.uniqueId]?.let {
-            if (it.message == event.message) {
-                // message was flagged, do not send
-                return
-            } else {
-                // message was not flagged, so remove if previous flagged message
-                flaggedMessages.remove(event.player.uniqueId)
-            }
-        }
         val player = event.player
         val message = event.message
+        if (isFlagged(player, message)) return
+        logger.info("${player.username} (${player.uniqueId}): $message")
         player.currentServer.ifPresent { server ->
-            logger.info("${player.username} (${player.uniqueId}): $message")
+            messenger.broadcastChatMessage(server.serverInfo.name, player, message)
+        }
+    }
+
+    private fun isFlagged(player: Player, message: String): Boolean {
+        val matches = regexes.filter { it.containsMatchIn(message) }
+        if (matches.isEmpty()) {
+            flaggedMessages.remove(player.uniqueId)
+            return false
+        }
+        fun String.highlight(r: Regex) = r.replace(this) { match -> "<red>${match.value}</red>" }
+        val highlighted = matches.fold(message, String::highlight)
+        logger.info("${player.username} (${player.uniqueId}) Attempting to send flagged message: $message")
+        player.sendSimpleMM(
+            "<red><bold>The following message was not sent because it contained " +
+                "potentially inappropriate language:<newline><reset><message><newline><red>To send this message anyway, run " +
+                "<gray>/confirmmessage<red>.",
+            highlighted,
+        )
+        flaggedMessages[player.uniqueId] = message
+        return true
+    }
+}
+
+@CommandAlias("confirmmessage")
+@CommandPermission("chattore.confirmmessage")
+private class ConfirmMessage(
+    private val flaggedMessages: ConcurrentHashMap<UUID, String>,
+    private val logger: Logger,
+    private val messenger: Messenger,
+) : BaseCommand() {
+    @Default
+    fun default(player: Player) {
+        val message = flaggedMessages[player.uniqueId] ?: throw ChattoreException("You have no message to confirm!")
+        player.sendRichMessage("<red>Override recognized")
+        flaggedMessages.remove(player.uniqueId)
+        logger.info("${player.username} (${player.uniqueId}) FLAGGED MESSAGE OVERRIDE: $message")
+        player.currentServer.ifPresent { server ->
             messenger.broadcastChatMessage(server.serverInfo.name, player, message)
         }
     }

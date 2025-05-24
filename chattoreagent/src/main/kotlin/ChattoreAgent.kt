@@ -1,7 +1,9 @@
-import feature.startAfkFeature
-import feature.startAliasFeature
-import feature.startChatFeature
+package org.openredstone.chattore.agent
+
 import org.bukkit.plugin.java.JavaPlugin
+import org.openredstone.chattore.agent.feature.startAfkFeature
+import org.openredstone.chattore.agent.feature.startAliasFeature
+import org.openredstone.chattore.agent.feature.startChatFeature
 
 class ChattoreAgent : JavaPlugin() {
     override fun onEnable() {

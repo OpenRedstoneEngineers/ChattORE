@@ -1,4 +1,4 @@
-package feature
+package org.openredstone.chattore.agent.feature
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion
 import org.bukkit.OfflinePlayer
@@ -32,6 +32,7 @@ class ChattoreExpansion(private val afkUsers: MutableSet<UUID>) : PlaceholderExp
                 }
                 return ""
             }
+
             else -> null
         }
     }
@@ -72,7 +73,7 @@ fun startAfkFeature(plugin: JavaPlugin) {
 fun startAfkTimer(
     plugin: JavaPlugin,
     afkMap: ConcurrentHashMap<UUID, Long>,
-    afkPlayers: MutableSet<UUID>
+    afkPlayers: MutableSet<UUID>,
 ) {
     plugin.server.scheduler.scheduleSyncRepeatingTask(plugin, {
         afkMap.forEach { (uuid, lastActive) ->

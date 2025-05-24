@@ -1,46 +1,40 @@
-package chattore.feature
+package org.openredstone.chattore.feature
 
-import chattore.*
 import co.aikar.commands.BaseCommand
-import co.aikar.commands.annotation.*
+import co.aikar.commands.annotation.CommandAlias
+import co.aikar.commands.annotation.CommandCompletion
+import co.aikar.commands.annotation.CommandPermission
+import co.aikar.commands.annotation.Subcommand
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.ProxyServer
 import net.kyori.adventure.text.Component
 import net.luckperms.api.LuckPerms
-import net.luckperms.api.model.user.User
-import java.util.*
+import org.openredstone.chattore.*
+import net.luckperms.api.model.user.User as LPUser
 
-data class ProfileConfig(
-    val profile: String = "<gold><st>  </st> Player Profile <st>  </st></gold><newline>IGN: <ign><newline>Nickname: <nickname><newline>Rank: <rank><newline><gold><st>                        </st></gold><newline>About me: <yellow><about><reset><newline><gold><st>                        </st></gold>",
-    val format: String = "<gold>[</gold><red>ChattORE</red><gold>]</gold> <red><message></red>"
-)
-
-fun createProfileFeature(
-    proxy: ProxyServer,
+fun PluginScope.createProfileFeature(
     database: Storage,
     luckPerm: LuckPerms,
-    config: ProfileConfig
-): Feature {
-    return Feature(
-        commands = listOf(Profile(proxy, database, luckPerm, config))
-    )
+    userCache: UserCache,
+) {
+    registerCommands(Profile(proxy, database, luckPerm, userCache))
 }
 
 @CommandAlias("profile|playerprofile")
 @CommandPermission("chattore.profile")
-class Profile(
+private class Profile(
     private val proxy: ProxyServer,
     private val database: Storage,
     private val luckPerms: LuckPerms,
-    private val config: ProfileConfig
+    private val userCache: UserCache,
 ) : BaseCommand() {
 
     @Subcommand("info")
-    @CommandCompletion("@uuidAndUsernameCache")
-    fun profile(player: Player, @Single target: String) {
-        val usernameAndUuid = getUsernameAndUuid(target)
-        luckPerms.userManager.loadUser(usernameAndUuid.second).whenComplete { user, throwable ->
-            player.sendMessage(parsePlayerProfile(user, usernameAndUuid.first))
+    @CommandCompletion("@${UserCache.COMPLETION_USERNAMES_AND_UUIDS}")
+    fun profile(player: Player, target: KnownUser) {
+        // TODO this might fail
+        luckPerms.userManager.loadUser(target.uuid).whenComplete { user, _ ->
+            player.sendMessage(parsePlayerProfile(user, target.name))
         }
     }
 
@@ -48,63 +42,38 @@ class Profile(
     @CommandPermission("chattore.profile.about")
     fun about(player: Player, about: String) {
         database.setAbout(player.uniqueId, about)
-        val response = config.format.render(
-            "Set your about to '$about'.".toComponent()
-        )
-        player.sendMessage(response)
+        player.sendInfo("Set your about to '$about'.")
     }
 
     @Subcommand("setabout")
     @CommandPermission("chattore.profile.about.others")
-    @CommandCompletion("@uuidAndUsernameCache")
-    fun setAbout(player: Player, @Single target: String, about: String) {
-        val usernameAndUuid = getUsernameAndUuid(target)
-        database.setAbout(usernameAndUuid.second, about)
-        val response = config.format.render(
-            "Set about for '${usernameAndUuid.first}' to '$about'.".toComponent()
-        )
-        player.sendMessage(response)
-        proxy.getPlayer(usernameAndUuid.second).ifPresent {
-            it.sendMessage(
-                config.format.render(
-                    "Your about has been set to '$about'".toComponent()
-                )
-            )
-        }
+    // TODO do we want to complete uuids too here?
+    @CommandCompletion("@${UserCache.COMPLETION_USERNAMES_AND_UUIDS}")
+    fun setAbout(player: Player, target: User, about: String) {
+        database.setAbout(target.uuid, about)
+        player.sendInfo("Set about for '${userCache.usernameOrUuid(target)}' to '$about'.")
+        proxy.playerOrNull(target.uuid)?.sendInfo("Your about has been set to '$about'")
     }
 
-    fun parsePlayerProfile(user: User, ign: String): Component {
+    private fun parsePlayerProfile(user: LPUser, ign: String): Component {
         var group = user.primaryGroup
         luckPerms.groupManager.getGroup(user.primaryGroup)?.let {
             it.cachedData.metaData.prefix?.let { prefix -> group = prefix }
         }
-        return config.profile.render(
-            mapOf(
-                "about" to (database.getAbout(user.uniqueId) ?: "no about yet :(").toComponent(),
-                "ign" to ign.toComponent(),
-                "nickname" to (database.getNickname(user.uniqueId) ?: "No nickname set")
-                    .render(mapOf(
-                        "username" to ign.toComponent(),
-                    )),
-                "rank" to group.legacyDeserialize(),
+        return """
+            <gold><st>  </st> Player Profile <st>  </st></gold>
+            IGN: <ign>
+            Nickname: <nickname>
+            Rank: <rank>
+            <gold><st>                        </st></gold>
+            About me: <yellow><about><reset>
+            <gold><st>                        </st></gold>"""
+            .trimIndent()
+            .render(
+                "about" toS (database.getAbout(user.uniqueId) ?: "no about yet :("),
+                "ign" toS ign,
+                "nickname" toC (database.getNickname(user.uniqueId)?.render(ign) ?: "No nickname set".toComponent()),
+                "rank" toC group.legacyDeserialize(),
             )
-        )
-    }
-
-    fun getUsernameAndUuid(input: String): Pair<String, UUID> {
-        var ign = input // Assume target is the IGN
-        val uuid: UUID
-        if (database.usernameToUuidCache.containsKey(ign)) {
-            uuid = database.usernameToUuidCache.getValue(ign)
-        } else {
-            if (!uuidRegex.matches(input)) {
-                throw ChattoreException("Invalid target specified")
-            }
-            uuid = UUID.fromString(input)
-            val fetchedName = database.uuidToUsernameCache[uuid]
-                ?: throw ChattoreException("We do not recognize that user!")
-            ign = fetchedName
-        }
-        return Pair(ign, uuid)
     }
 }

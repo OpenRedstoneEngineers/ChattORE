@@ -1,48 +1,29 @@
-package chattore.feature
+package org.openredstone.chattore.feature
 
-import chattore.*
 import co.aikar.commands.BaseCommand
 import co.aikar.commands.annotation.*
 import com.velocitypowered.api.proxy.Player
+import org.openredstone.chattore.PluginScope
+import org.openredstone.chattore.VERSION
+import org.openredstone.chattore.sendInfo
+import org.openredstone.chattore.sendInfoMM
 
-data class ChattoreConfig(
-    val format: String = "<gold>[</gold><red>ChattORE</red><gold>]</gold> <red><message></red>",
-)
-
-fun createChattoreFeature(
-    plugin: ChattORE,
-    config: ChattoreConfig
-): Feature {
-    return Feature(
-        commands = listOf(Chattore(plugin, config))
-    )
+fun PluginScope.createChattoreFeature() {
+    registerCommands(Chattore())
 }
 
 @CommandAlias("chattore")
-class Chattore(
-    private val plugin: ChattORE,
-    private val config: ChattoreConfig
-) : BaseCommand() {
-
+private class Chattore : BaseCommand() {
     @Default
     @CatchUnknown
     @Subcommand("version")
     fun version(player: Player) {
-        player.sendMessage(
-            config.format.render(
-                "Version &7${plugin.getVersion()}".legacyDeserialize()
-            )
-        )
+        player.sendInfoMM("Version <gray>$VERSION")
     }
 
     @Subcommand("reload")
     @CommandPermission("chattore.manage")
     fun reload(player: Player) {
-        plugin.reload()
-        player.sendMessage(
-            config.format.render(
-                "Reloaded ChattORE"
-            )
-        )
+        player.sendInfo("Not implemented yet :(")
     }
 }

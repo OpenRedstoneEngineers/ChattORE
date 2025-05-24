@@ -6,7 +6,7 @@ plugins {
     kotlin("plugin.serialization")
 }
 
-group = ""
+group = "org.openredstone"
 version = "1.1"
 
 repositories {

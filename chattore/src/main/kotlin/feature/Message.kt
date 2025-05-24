@@ -1,52 +1,38 @@
-package chattore.feature
+package org.openredstone.chattore.feature
 
-import chattore.*
 import co.aikar.commands.BaseCommand
 import co.aikar.commands.annotation.*
+import co.aikar.commands.velocity.contexts.OnlinePlayer
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.ProxyServer
+import org.openredstone.chattore.*
 import org.slf4j.Logger
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-data class MessageConfig(
-    val messageReceived: String = "<gold>[</gold><red><sender></red> <gold>-></gold> <red>me</red><gold>]</gold> <message>",
-    val messageSent: String = "<gold>[</gold><red>me</red> <gold>-></gold> <red><recipient></red><gold>]</gold> <message>",
-)
-
-fun createMessageFeature(
-    proxy : ProxyServer,
-    logger : Logger,
+fun PluginScope.createMessageFeature(
     messenger: Messenger,
-    config: MessageConfig
-): Feature {
+) {
     val replyMap = ConcurrentHashMap<UUID, UUID>()
-    return Feature(
-        commands = listOf(
-            Message(proxy, logger, messenger, config, replyMap),
-            Reply(proxy, logger, messenger, config, replyMap)
-        ),
+    registerCommands(
+        Message(logger, messenger, replyMap),
+        Reply(proxy, logger, messenger, replyMap),
     )
 }
 
 @CommandAlias("m|pm|msg|message|vmsg|vmessage|whisper|tell")
 @CommandPermission("chattore.message")
 private class Message(
-    private val proxy: ProxyServer,
     private val logger: Logger,
     private val messenger: Messenger,
-    private val config: MessageConfig,
-    private val replyMap: ConcurrentHashMap<UUID, UUID>
+    private val replyMap: ConcurrentHashMap<UUID, UUID>,
 ) : BaseCommand() {
     @Default
     @Syntax("[target] <message>")
+    // unsure if this is needed
     @CommandCompletion("@players")
-    fun default(player: Player, target: String, args: Array<String>) {
-        proxy.getPlayer(target).ifPresentOrElse({ targetPlayer ->
-            sendMessage(logger, messenger, replyMap, config, player, targetPlayer, args.joinToString(" "))
-        }, {
-            throw ChattoreException("That user doesn't exist!")
-        })
+    fun default(sender: Player, recipient: OnlinePlayer, message: String) {
+        sendMessage(logger, messenger, replyMap, sender, recipient.player, message)
     }
 }
 
@@ -56,52 +42,39 @@ private class Reply(
     private val proxy: ProxyServer,
     private val logger: Logger,
     private val messenger: Messenger,
-    private val config: MessageConfig,
-    private val replyMap: ConcurrentHashMap<UUID, UUID>
+    private val replyMap: ConcurrentHashMap<UUID, UUID>,
 ) : BaseCommand() {
     @Default
-    fun default(player: Player, args: Array<String>) {
-        proxy.getPlayer(
-            replyMap[player.uniqueId] ?: throw ChattoreException(
-                "You have no one to reply to!"
-            )
-        ).ifPresentOrElse({ target ->
-            sendMessage(logger, messenger, replyMap, config, player, target, args.joinToString(" "))
-        }, {
-            throw ChattoreException(
-                "The person you are trying to reply to is no longer online!"
-            )
-        })
+    fun default(sender: Player, message: String) {
+        val recipientUuid = replyMap[sender.uniqueId] ?: throw ChattoreException("You have no one to reply to!")
+        val recipient = proxy.playerOrNull(recipientUuid)
+            ?: throw ChattoreException("The person you are trying to reply to is no longer online!")
+        sendMessage(logger, messenger, replyMap, sender, recipient, message)
     }
 }
 
-fun sendMessage(
+private fun sendMessage(
     logger: Logger,
     messenger: Messenger,
     replyMap: MutableMap<UUID, UUID>,
-    config: MessageConfig,
-    player: Player,
-    targetPlayer: Player,
-    message: String
+    sender: Player,
+    recipient: Player,
+    message: String,
 ) {
-    logger.info("${player.username} (${player.uniqueId}) -> " +
-        "${targetPlayer.username} (${targetPlayer.uniqueId}): $message")
-    player.sendMessage(
-        config.messageSent.render(
-            mapOf(
-                "message" to messenger.prepareChatMessage(message, player),
-                "recipient" to targetPlayer.username.toComponent()
-            )
-        )
+    logger.info(
+        "${sender.username} (${sender.uniqueId}) -> " +
+            "${recipient.username} (${recipient.uniqueId}): $message"
     )
-    targetPlayer.sendMessage(
-        config.messageReceived.render(
-            mapOf(
-                "message" to messenger.prepareChatMessage(message, player),
-                "sender" to player.username.toComponent()
-            )
-        )
+    sender.sendRichMessage(
+        "<gold>[</gold><red>me</red> <gold>-></gold> <red><recipient></red><gold>]</gold> <message>",
+        "message" toC messenger.prepareChatMessage(message, sender),
+        "recipient" toS recipient.username,
     )
-    replyMap[targetPlayer.uniqueId] = player.uniqueId
-    replyMap[player.uniqueId] = targetPlayer.uniqueId
+    recipient.sendRichMessage(
+        "<gold>[</gold><red><sender></red> <gold>-></gold> <red>me</red><gold>]</gold> <message>",
+        "message" toC messenger.prepareChatMessage(message, sender),
+        "sender" toS sender.username,
+    )
+    replyMap[recipient.uniqueId] = sender.uniqueId
+    replyMap[sender.uniqueId] = recipient.uniqueId
 }

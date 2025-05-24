@@ -1,4 +1,4 @@
-package feature
+package org.openredstone.chattore.agent.feature
 
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener

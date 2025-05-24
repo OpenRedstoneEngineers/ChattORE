@@ -1,4 +1,4 @@
-package feature
+package org.openredstone.chattore.agent.feature
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.cbor.Cbor
