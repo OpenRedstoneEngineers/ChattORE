@@ -1,7 +1,8 @@
 rootProject.name = "ChattORE"
 include("common")
 include("chattore")
-include("chattoreagent")
+include("chattore-agent")
+project(":chattore-agent").projectDir = file("agent")
 
 dependencyResolutionManagement {
     repositories {
