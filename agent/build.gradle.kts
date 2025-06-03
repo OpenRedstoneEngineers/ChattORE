@@ -7,9 +7,6 @@ plugins {
     alias(libs.plugins.pluginYml)
 }
 
-group = "org.openredstone"
-version = "1.1"
-
 dependencies {
     implementation(project(":common"))
     implementation(libs.kotlinx.serialization.cbor)

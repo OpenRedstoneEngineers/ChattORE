@@ -8,9 +8,6 @@ plugins {
     alias(libs.plugins.shadow)
 }
 
-group = "org.openredstone"
-version = "1.2"
-
 dependencies {
     implementation(project(":common"))
     implementation(libs.acf)

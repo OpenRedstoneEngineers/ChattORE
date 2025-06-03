@@ -6,9 +6,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-group = "org.openredstone"
-version = "1.1"
-
 dependencies {
     // TODO depend on core instead?
     implementation(libs.kotlinx.serialization.json)
