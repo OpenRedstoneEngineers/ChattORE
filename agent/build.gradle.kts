@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.shadow)
+    alias(libs.plugins.pluginYml)
 }
 
 group = "org.openredstone"
@@ -16,15 +17,22 @@ dependencies {
     compileOnly(libs.papi)
 }
 
-tasks.withType<KotlinCompile> {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_21)
-    }
-}
-
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
+
+bukkit {
+    name = "ChattoreAgent"
+    main = "org.openredstone.chattore.agent.ChattoreAgent"
+    apiVersion = "1.20"
+    depend = listOf("PlaceholderAPI")
+}
+
+tasks.withType<KotlinCompile> {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_21)
     }
 }
 
