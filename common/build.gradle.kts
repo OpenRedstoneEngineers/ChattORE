@@ -7,8 +7,7 @@ plugins {
 }
 
 dependencies {
-    // TODO depend on core instead?
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.serialization.core)
 }
 
 tasks.withType<KotlinCompile> {
