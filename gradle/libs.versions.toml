@@ -10,7 +10,6 @@ javacord = "org.javacord:javacord:3.8.0"
 sqliteJdbc = "org.xerial:sqlite-jdbc:3.46.0.0"
 luckperms = "net.luckperms:api:5.1"
 paper = "io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT"
-spigot = "org.spigotmc:spigot-api:1.17-R0.1-SNAPSHOT"
 velocity = "com.velocitypowered:velocity-api:3.3.0-SNAPSHOT"
 papi = "me.clip:placeholderapi:2.11.6"
 exposed-core = { group = "org.jetbrains.exposed", name = "exposed-core", version.ref = "exposed" }

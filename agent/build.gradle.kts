@@ -12,7 +12,7 @@ version = "1.1"
 dependencies {
     implementation(project(":common"))
     implementation(libs.kotlinx.serialization.cbor)
-    compileOnly(libs.spigot)
+    compileOnly(libs.paper)
     compileOnly(libs.papi)
 }
 
