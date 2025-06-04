@@ -15,12 +15,13 @@ const val ALIAS_CHANNEL: String = "chattore:alias"
 @Serializable
 data class AliasMessage(
     val targetPlayer: UUID,
-    val command: String
+    val command: String,
 )
 
 @Serializable
-private data class UUIDSurrogate(val high: Long, val low: Long, ) {
+private data class UUIDSurrogate(val high: Long, val low: Long) {
     fun toUUID(): UUID = UUID(high, low)
+
     companion object {
         fun fromUUID(uuid: UUID) = UUIDSurrogate(uuid.mostSignificantBits, uuid.leastSignificantBits)
     }

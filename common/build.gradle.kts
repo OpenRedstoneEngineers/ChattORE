@@ -2,19 +2,12 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm")
-    kotlin("plugin.serialization")
-}
-
-group = "org.openredstone"
-version = "1.1"
-
-repositories {
-    mavenCentral()
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 dependencies {
-    implementation(group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version = "1.8.0")
+    implementation(libs.kotlinx.serialization.core)
 }
 
 tasks.withType<KotlinCompile> {
