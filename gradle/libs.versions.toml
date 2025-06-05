@@ -28,3 +28,4 @@ kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 pluginYml = { id = "de.eldoria.plugin-yml.bukkit", version = "0.7.1" }
+buildconfig = { id = "com.github.gmazzo.buildconfig", version = "5.6.5" }

@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.shadow)
+    alias(libs.plugins.buildconfig)
 }
 
 dependencies {
@@ -24,6 +25,11 @@ dependencies {
     compileOnly(libs.luckperms)
     compileOnly(libs.velocity)
     kapt(libs.velocity)
+}
+
+buildConfig {
+    packageName("${project.group}")
+    buildConfigField("VERSION", provider { "${project.version}" })
 }
 
 tasks.withType<KotlinCompile> {

@@ -4,4 +4,5 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.shadow) apply false
     alias(libs.plugins.pluginYml) apply false
+    alias(libs.plugins.buildconfig) apply false
 }
