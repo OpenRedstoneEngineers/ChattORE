@@ -210,5 +210,15 @@
     "command": "owner",
     "description": "Who is it? 👀",
     "localChat": "Follow this link to find information about the current owner: <aqua><click:open_url:'https://openredstone.org/owner'><hover:show_text:'Go to URL'>https://openredstone.org/owner</hover></click></aqua>"
+  },
+  {
+    "command": "j",
+    "description": "Ur joking?",
+    "globalChat": "<gold><name><white> is joking"
+  },
+  {
+    "command": "hj",
+    "description": "Ur half-joking?",
+    "globalChat": "<gold><name><white> is half joking"
   }
 ]
