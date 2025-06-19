@@ -12,6 +12,9 @@ import com.velocitypowered.api.plugin.Plugin
 import com.velocitypowered.api.plugin.annotation.DataDirectory
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.ProxyServer
+import net.kyori.adventure.text.format.NamedTextColor.GRAY
+import net.kyori.adventure.text.format.NamedTextColor.RED
+import net.kyori.adventure.text.format.TextDecoration.BOLD
 import net.luckperms.api.LuckPermsProvider
 import org.openredstone.chattore.feature.*
 import org.slf4j.Logger
@@ -92,7 +95,7 @@ class ChattORE @Inject constructor(
         val exception = throwable as? ChattoreException ?: return false
         val message = exception.message ?: "Something went wrong!"
         if (sender is Player) {
-            sender.sendSimpleS("<b><red>Oh NO ! </red></b><gray>:</gray> <red><message></red>", message)
+            sender.sendMessage("Oh NO ! "[BOLD + RED] + ": "[GRAY] + message[RED])
         } else {
             sender.sendMessage("Error: $message")
         }

@@ -3,9 +3,8 @@ package org.openredstone.chattore.feature
 import co.aikar.commands.BaseCommand
 import co.aikar.commands.annotation.*
 import com.velocitypowered.api.proxy.Player
-import org.openredstone.chattore.ChattoreException
-import org.openredstone.chattore.PluginScope
-import org.openredstone.chattore.sendInfoMM
+import net.kyori.adventure.text.event.HoverEvent
+import org.openredstone.chattore.*
 
 fun PluginScope.createEmojiFeature(): Emojis {
     val emojis = loadResourceAsString("emojis.csv").lineSequence().associate { item ->
@@ -40,9 +39,9 @@ private class EmojiCommand(
             val notEmoji = emojiNames.toSet().minus(emojis.keys)
             throw ChattoreException("The following are not valid emojis: ${notEmoji.joinToString(", ")}")
         }
-        val emojiMiniMessage = emojiNames.toSet().intersect(emojis.keys).joinToString(", ") {
-            "<hover:show_text:$it>${emojis[it]}</hover>"
-        }
-        player.sendInfoMM("Emojis: $emojiMiniMessage")
+        emojiNames
+            .map { emojis.getValue(it)[HoverEvent.showText(it.c)] }
+            .join(", ".c)
+            .let { player.sendInfo("Emojis: ".c + it) }
     }
 }

@@ -8,11 +8,8 @@ import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.ProxyServer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.Component.text
-import net.kyori.adventure.text.JoinConfiguration
-import net.kyori.adventure.text.event.ClickEvent.suggestCommand
-import net.kyori.adventure.text.event.HoverEvent.showText
+import net.kyori.adventure.text.format.NamedTextColor.*
 import org.openredstone.chattore.*
 import org.slf4j.Logger
 
@@ -31,27 +28,25 @@ private class FunCommandsCommand(
     @Default
     @Description("Displays information about the /funcommands command")
     fun onDefault(player: Player) {
-        player.sendRichMessage("<green>FunCommands v1.1 by <gold>Waffle [Wueffi]</gold></green>")
+        player.sendMessage("FunCommands v1.1 by "[GREEN] + "Waffle [Wueffi]"[GOLD])
     }
 
     @Subcommand("list")
-    @Description("Lists all available fun commands in alphabetical order")
+    @Description("Lists all available Fun Commands in alphabetical order")
     fun onList(player: Player) {
         if (commands.isEmpty()) {
-            player.sendRichMessage("<red>No Fun Commands found.</red>")
+            player.sendMessage("No Fun Commands found."[RED])
             return
         }
 
-        player.sendRichMessage("<yellow>Available Fun Commands:</yellow>")
+        player.sendMessage("Available Fun Commands:"[YELLOW])
 
         commands
             .sortedBy { it.command }
             .map {
-                text("/${it.command}")
-                    .clickEvent(suggestCommand("/${it.command}"))
-                    .hoverEvent(showText(text(it.description)))
+                "/${it.command}"[Buttons.suggest(it.description.c, "/${it.command}")]
             }
-            .let { Component.join(JoinConfiguration.spaces(), it) }
+            .join(" ".c)
             .let(player::sendMessage)
     }
 
@@ -66,11 +61,7 @@ private class FunCommandsCommand(
         val cmd = commands.find { it.command.equals(commandName, ignoreCase = true) }
             ?: throw ChattoreException("Command '$commandName' not found.")
 
-        player.sendRichMessage(
-            "<gold>Description for <yellow>/<command></yellow>: <description></gold>",
-            "command" toS cmd.command,
-            "description" toS cmd.description,
-        )
+        player.sendMessage("Description for "[GOLD] + "/${cmd.command}"[YELLOW] + ": ${cmd.description}"[GOLD])
     }
 }
 

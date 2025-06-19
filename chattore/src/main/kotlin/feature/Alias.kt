@@ -11,11 +11,12 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.encodeToByteArray
 import kotlinx.serialization.json.Json
+import net.kyori.adventure.text.format.NamedTextColor.RED
 import org.openredstone.chattore.PluginScope
+import org.openredstone.chattore.c
 import org.openredstone.chattore.common.ALIAS_CHANNEL
 import org.openredstone.chattore.common.AliasMessage
-import org.openredstone.chattore.render
-import org.openredstone.chattore.toComponent
+import org.openredstone.chattore.get
 import org.slf4j.Logger
 
 private val IDENTIFIER: MinecraftChannelIdentifier = MinecraftChannelIdentifier.from(ALIAS_CHANNEL)
@@ -62,12 +63,12 @@ private class AliasCommand(
         val args = invocation.arguments()
 
         if (requiredArgs > args.size) {
-            source.sendMessage("Not enough arguments! I expected $requiredArgs argument(s)!".toComponent())
+            source.sendMessage("Not enough arguments! I expected $requiredArgs argument(s)!".c)
             return
         }
 
         if (source !is Player) {
-            source.sendMessage("This command can only be used by players!".toComponent())
+            source.sendMessage("This command can only be used by players!".c)
             return
         }
 
@@ -123,7 +124,7 @@ private class PluginMessageListener(private val logger: Logger) {
         when (val src = message.source) {
             is Player -> {
                 logger.warn("Player ${src.username} (${src.uniqueId}) tried to send a plugin message to $IDENTIFIER!")
-                src.disconnect("<red>We don't really like it when you try to break things".render())
+                src.disconnect("We don't really like it when you try to break things"[RED])
             }
             // is ServerConnection for when we want to handle messages from chattoreagent
         }

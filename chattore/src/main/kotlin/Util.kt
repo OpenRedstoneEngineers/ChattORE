@@ -9,6 +9,8 @@ import net.kyori.adventure.audience.Audience
 import net.kyori.adventure.audience.ForwardingAudience
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextComponent
+import net.kyori.adventure.text.format.NamedTextColor.GOLD
+import net.kyori.adventure.text.format.NamedTextColor.RED
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
@@ -24,7 +26,6 @@ import kotlin.io.path.readText
 import kotlin.io.path.writeBytes
 import kotlin.jvm.optionals.getOrNull
 
-fun String.toComponent() = Component.text(this)
 fun Component.miniMessageSerialize() = MiniMessage.miniMessage().serialize(this)
 
 private val legacyNoObfuscate = LegacyComponentSerializer.builder()
@@ -45,27 +46,14 @@ fun String.legacyDeserialize(canObfuscate: Boolean = false): TextComponent {
 fun String.render(vararg resolvers: TagResolver): Component =
     MiniMessage.miniMessage().deserialize(this, *resolvers)
 
-// Suffixes:
-// - S: String
-// - C: Component
-// - MM: MiniMessage
-
+// TODO remove toS?
 // Convenience functions for constructing TagResolvers that act as placeholders
-infix fun String.toS(message: String) = Placeholder.unparsed(this, message)
+infix fun String.toS(message: String) = this toC message.c
 infix fun String.toC(message: Component) = Placeholder.component(this, message)
-infix fun String.toMM(message: String) = toC(message.render())
 
-// The "simple" functions take a MiniMessage with a "<message>" placeholder and fill that with the argument
-fun String.renderSimpleC(message: Component): Component = render("message" toC message)
-
-fun Audience.sendSimpleC(format: String, message: Component) = sendMessage(format.renderSimpleC(message))
-fun Audience.sendSimpleS(format: String, message: String) = sendSimpleC(format, message.toComponent())
-fun Audience.sendSimpleMM(format: String, message: String) = sendSimpleC(format, message.render())
-
-private const val infoFormat = "<gold>[</gold><red>ChattORE</red><gold>]</gold> <red><message></red>"
-fun Audience.sendInfo(message: String) = sendSimpleC(infoFormat, message.toComponent())
-fun Audience.sendInfoMM(message: String, vararg resolvers: TagResolver) =
-    sendSimpleC(infoFormat, message.render(*resolvers))
+private val infoPrefix = "["[GOLD] + "ChattORE"[RED] + "]"[GOLD]
+fun Audience.sendInfo(message: Component) = sendMessage(infoPrefix + " ".c + message)
+fun Audience.sendInfo(message: String) = sendInfo(message.c)
 
 /** Mirrors Player.sendRichMessage **/
 fun Audience.sendRichMessage(message: String, vararg resolvers: TagResolver) = sendMessage(message.render(*resolvers))

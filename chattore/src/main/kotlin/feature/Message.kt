@@ -5,6 +5,8 @@ import co.aikar.commands.annotation.*
 import co.aikar.commands.velocity.contexts.OnlinePlayer
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.ProxyServer
+import net.kyori.adventure.text.format.NamedTextColor.GOLD
+import net.kyori.adventure.text.format.NamedTextColor.RED
 import org.openredstone.chattore.*
 import org.slf4j.Logger
 import java.util.*
@@ -65,16 +67,10 @@ private fun sendMessage(
         "${sender.username} (${sender.uniqueId}) -> " +
             "${recipient.username} (${recipient.uniqueId}): $message"
     )
-    sender.sendRichMessage(
-        "<gold>[</gold><red>me</red> <gold>-></gold> <red><recipient></red><gold>]</gold> <message>",
-        "message" toC messenger.prepareChatMessage(message, sender),
-        "recipient" toS recipient.username,
-    )
-    recipient.sendRichMessage(
-        "<gold>[</gold><red><sender></red> <gold>-></gold> <red>me</red><gold>]</gold> <message>",
-        "message" toC messenger.prepareChatMessage(message, sender),
-        "sender" toS sender.username,
-    )
+    fun prefix(from: String, to: String) = "["[GOLD] + from[RED] + " -> "[GOLD] + to[RED] + "] "[GOLD]
+    val prepared = messenger.prepareChatMessage(message, sender)
+    sender.sendMessage(prefix("me", recipient.username) + prepared)
+    recipient.sendMessage(prefix(sender.username, "me") + prepared)
     replyMap[recipient.uniqueId] = sender.uniqueId
     replyMap[sender.uniqueId] = recipient.uniqueId
 }

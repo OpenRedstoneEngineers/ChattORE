@@ -10,7 +10,8 @@ import com.velocitypowered.api.event.connection.LoginEvent
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.ProxyServer
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.JoinConfiguration
+import net.kyori.adventure.text.event.ClickEvent
+import net.kyori.adventure.text.event.HoverEvent
 import org.openredstone.chattore.*
 import java.util.*
 
@@ -85,6 +86,7 @@ val hexColorMap = mapOf(
 
 private val hexPattern = """#[0-9a-fA-F]{6}""".toRegex()
 
+// TODO: parse instead?
 private fun String.validateColor() = if (this.startsWith("&")) {
     if (this.length != 2) {
         throw ChattoreException("When providing legacy color codes, use a single character after &.")
@@ -150,27 +152,19 @@ private class Nickname(
     fun presets(player: Player, @Optional shownText: String?) {
         val renderedPresets = ArrayList<Component>()
         for ((presetName, preset) in config.presets) {
+            val renderedPreset = preset.render(presetName)
             val rendered = if (shownText == null) {
                 // Primarily show the preset name, else a preview of the nickname.
-                "<hover:show_text:'Click to apply <username>'><preset></hover>"
+                renderedPreset[HoverEvent.showText("Click to apply ".c + preset.render(player.username))]
             } else {
                 // Primarily show the entered text, else the preset name.
                 // Also, we're suggesting the username as the autocompleted $shownText.
-                "<hover:show_text:'Click to apply <preset> preset'><custom></hover>"
-            }.render(
-                "username" toC preset.render(player.username),
-                "preset" toC preset.render(presetName),
-                "custom" toC preset.render(shownText ?: ""),
-            ).let {
-                "<click:run_command:'/nick preset $presetName'><message></click>".renderSimpleC(it)
-            }
+                preset.render(shownText)[HoverEvent.showText("Click to apply ".c + renderedPreset + " preset".c)]
+            }.let { it[ClickEvent.runCommand("/nick preset $presetName")] }
             renderedPresets.add(rendered)
         }
 
-        player.sendInfoMM(
-            "Available presets: <presets>",
-            "presets" toC Component.join(JoinConfiguration.commas(true), renderedPresets),
-        )
+        player.sendInfo("Available presets: ".c + renderedPresets.join(", ".c))
     }
 
     @Subcommand("nick")
@@ -206,16 +200,11 @@ private class Nickname(
 
     private fun CommandSource.notifyExecutor(target: User, nickname: NickPreset) {
         val targetName = userCache.usernameOrUuid(target)
-        sendInfoMM(
-            "Set nickname for $targetName as <rendered>.",
-            "rendered" toC nickname.render(targetName),
-        )
+        sendInfo("Set nickname for $targetName as ".c + nickname.render(targetName) + ".".c)
     }
 
-    private fun Player.notifyOfNickChange(nickname: NickPreset) = sendInfoMM(
-        "Your nickname has been set to <rendered>",
-        "rendered" toC nickname.render(username),
-    )
+    private fun Player.notifyOfNickChange(nickname: NickPreset) =
+        sendInfo("Your nickname has been set to ".c + nickname.render(username))
 }
 
 private class NicknameListener(

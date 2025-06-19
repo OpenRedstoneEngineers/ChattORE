@@ -8,6 +8,9 @@ import co.aikar.commands.annotation.Subcommand
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.ProxyServer
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor.GOLD
+import net.kyori.adventure.text.format.NamedTextColor.YELLOW
+import net.kyori.adventure.text.format.TextDecoration.STRIKETHROUGH
 import net.luckperms.api.LuckPerms
 import org.openredstone.chattore.*
 import net.luckperms.api.model.user.User as LPUser
@@ -60,20 +63,17 @@ private class Profile(
         luckPerms.groupManager.getGroup(user.primaryGroup)?.let {
             it.cachedData.metaData.prefix?.let { prefix -> group = prefix }
         }
-        return """
-            <gold><st>  </st> Player Profile <st>  </st></gold>
-            IGN: <ign>
-            Nickname: <nickname>
-            Rank: <rank>
-            <gold><st>                        </st></gold>
-            About me: <yellow><about><reset>
-            <gold><st>                        </st></gold>"""
-            .trimIndent()
-            .render(
-                "about" toS (database.getAbout(user.uniqueId) ?: "no about yet :("),
-                "ign" toS ign,
-                "nickname" toC (database.getNickname(user.uniqueId)?.render(ign) ?: "No nickname set".toComponent()),
-                "rank" toC group.legacyDeserialize(),
-            )
+        val about = database.getAbout(user.uniqueId) ?: "no about yet :("
+        val nickname = database.getNickname(user.uniqueId)?.render(ign) ?: "No nickname set".c
+        val rank = group.legacyDeserialize()
+        return listOf(
+            "  "[GOLD + STRIKETHROUGH] + " Player Profile "[GOLD] + "  "[GOLD + STRIKETHROUGH],
+            "IGN: $ign".c,
+            "Nickname: ".c + nickname,
+            "Rank: ".c + rank,
+            "                        "[GOLD + STRIKETHROUGH],
+            "About me: ".c + about[YELLOW],
+            "                        "[GOLD + STRIKETHROUGH],
+        ).join(Component.newline())
     }
 }

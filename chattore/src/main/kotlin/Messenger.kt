@@ -8,6 +8,9 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextReplacementConfig
+import net.kyori.adventure.text.event.HoverEvent
+import net.kyori.adventure.text.format.NamedTextColor.AQUA
+import net.kyori.adventure.text.format.TextDecoration.ITALIC
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.luckperms.api.LuckPerms
 import org.openredstone.chattore.feature.DiscordBroadcastEvent
@@ -50,7 +53,7 @@ class Messenger(
             .match("""((\\?)(${Regex.escape(key)}(.*?)${Regex.escape(key)}))""")
             .replacement { result, _ ->
                 if (result.group(2).contains("\\") || result.group(4).endsWith("\\")) {
-                    result.group(3).toComponent()
+                    result.group(3).c
                 } else {
                     "<$tag>${result.group(4)}</$tag>".render()
                 }
@@ -63,7 +66,7 @@ class Messenger(
             .replacement { result, _ ->
                 val match = result.group(1)
                 val content = emojis.nameToEmoji[match] ?: ":$match:"
-                "<hover:show_text:'$match'>$content</hover>".render()
+                content[HoverEvent.showText(match.c)]
             }
             .build()
 
@@ -72,10 +75,11 @@ class Messenger(
         val userManager = luckPerms.userManager
         val luckUser = userManager.getUser(userId) ?: return
         val name = database.getNickname(userId) ?: NickPreset(player.username)
-        val sender =
-            "<hover:show_text:'${player.username} | <i>Click for more</i>'><click:run_command:'/playerprofile info ${player.username}'><message></click></hover>"
-                .renderSimpleC(name.render(player.username))
-
+        val btn = Buttons.run(
+            "${player.username} | ".c + "Click for more"[ITALIC],
+            "/playerprofile info ${player.username}",
+        )
+        val sender = name.render(player.username)[btn]
         val prefix = luckUser.cachedData.metaData.prefix
             ?: luckUser.primaryGroup.replaceFirstChar(Char::uppercaseChar)
 
@@ -138,11 +142,8 @@ class Messenger(
             "TEXT" -> "\uD83D\uDCDD"
             else -> "\uD83D\uDCCE"
         }
-        return ("<aqua><click:open_url:'$link'>" +
-            "<hover:show_text:'<aqua>$link'>" +
-            "[$symbol $name]" +
-            "</hover>" +
-            "</click><reset>").render()
+        val linkStr = link.toString()
+        return "[$symbol $name]"[AQUA + Buttons.url(linkStr[AQUA], linkStr)]
     }
 
     private fun Component.performReplacements(replacements: List<TextReplacementConfig>): Component =

@@ -9,6 +9,7 @@ import com.velocitypowered.api.event.command.CommandExecuteEvent
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.ProxyServer
 import net.kyori.adventure.audience.Audience
+import net.kyori.adventure.text.format.NamedTextColor.GOLD
 import org.openredstone.chattore.*
 
 private val SpyEnabled = Setting<Boolean>("spy")
@@ -29,12 +30,8 @@ private class CommandListener(
 
     @Subscribe
     fun onCommandEvent(event: CommandExecuteEvent) {
-        spies.sendMessage(
-            "<gold><sender>: <message>".render(
-                "message" toS event.command,
-                "sender" toS ((event.commandSource as? Player)?.username ?: "Console"),
-            )
-        )
+        val sender = (event.commandSource as? Player)?.username ?: "Console"
+        spies.sendMessage("$sender: ${event.command}"[GOLD])
     }
 }
 

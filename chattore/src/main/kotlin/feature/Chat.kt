@@ -7,10 +7,11 @@ import co.aikar.commands.annotation.Default
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.player.PlayerChatEvent
 import com.velocitypowered.api.proxy.Player
-import org.openredstone.chattore.ChattoreException
-import org.openredstone.chattore.Messenger
-import org.openredstone.chattore.PluginScope
-import org.openredstone.chattore.sendSimpleMM
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor.GRAY
+import net.kyori.adventure.text.format.NamedTextColor.RED
+import net.kyori.adventure.text.format.TextDecoration.BOLD
+import org.openredstone.chattore.*
 import org.slf4j.Logger
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -53,14 +54,14 @@ private class ChatListener(
             flaggedMessages.remove(player.uniqueId)
             return false
         }
+        // TODO do this with components later
         fun String.highlight(r: Regex) = r.replace(this) { match -> "<red>${match.value}</red>" }
-        val highlighted = matches.fold(message, String::highlight)
+        val highlighted = matches.fold(message, String::highlight).render()
         logger.info("${player.username} (${player.uniqueId}) Attempting to send flagged message: $message")
-        player.sendSimpleMM(
-            "<red><bold>The following message was not sent because it contained " +
-                "potentially inappropriate language:<newline><reset><message><newline><red>To send this message anyway, run " +
-                "<gray>/confirmmessage<red>.",
-            highlighted,
+        player.sendMessage(
+            "The following message was not sent because it contained potentially inappropriate language:"[RED + BOLD]
+                + Component.newline() + highlighted + Component.newline()
+                + "To send this message anyway, run "[RED] + "/confirmmessage"[GRAY] + "."[RED]
         )
         flaggedMessages[player.uniqueId] = message
         return true

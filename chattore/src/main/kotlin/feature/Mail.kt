@@ -7,6 +7,10 @@ import com.velocitypowered.api.event.connection.LoginEvent
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.ProxyServer
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.event.HoverEvent
+import net.kyori.adventure.text.format.NamedTextColor.*
+import net.kyori.adventure.text.format.TextDecoration.BOLD
+import net.kyori.adventure.text.format.TextDecoration.ITALIC
 import org.openredstone.chattore.*
 import java.time.Instant
 import java.time.LocalDateTime
@@ -51,41 +55,38 @@ private class MailContainer(private val userCache: UserCache, private val messag
     fun getPage(page: Int = 0): Component {
         val maxPage = messages.size / pageSize
         if (page > maxPage || page < 0) {
-            return "Invalid page requested".toComponent()
+            return "Invalid page requested".c
         }
         val pageStart = page * pageSize
         val requestedMessages = messages.subList(pageStart, min(messages.size, pageStart + pageSize))
-        var body = "<red>Mailbox, page $page</red><newline><gold>ID: Sender Timestamp".render()
+        var body = "Mailbox, page $page"[RED] + Component.newline() + "ID: Sender Timestamp"[GOLD]
         requestedMessages.forEach {
-            val mini =
-                "<newline><yellow><hover:show_text:'<red>Click to read'><click:run_command:/mail read ${it.id}>" +
-                    "From: <gold><sender></gold>, <timestamp></click></hover> (<read>)</yellow>"
-            val readComponent = if (!it.read) {
-                "<b><red>Unread</red></b>".render()
+            val readComponent = if (it.read) {
+                "Read"[ITALIC + YELLOW]
             } else {
-                "<i><yellow>Read</yellow></i>".render()
+                "Unread"[BOLD + RED]
             }
-            val item = mini.render(
-                "sender" toS userCache.usernameOrUuid(it.sender),
-                "timestamp" toS getRelativeTimestamp(it.timestamp.toLong()),
-                "read" toC readComponent,
-            )
-            body = body.append(item)
+            val sender = userCache.usernameOrUuid(it.sender)
+            val timestamp = getRelativeTimestamp(it.timestamp.toLong())
+            val btnRead = Buttons.run("Click to read"[RED], "/mail read ${it.id}")
+            val item = ("From: "[YELLOW] + sender[GOLD] + ", $timestamp"[YELLOW])[btnRead] +
+                " ("[YELLOW] + readComponent + ")"[YELLOW]
+            body = body.append(Component.newline() + item)
         }
         if (maxPage > 0) {
-            var pageMini = "<newline>"
-            pageMini += if (page == 0) {
-                "<red><hover:show_text:'<red>No previous page'>\uD83D\uDEAB</hover></red>"
+            var pageCompo = Component.newline() as Component
+            pageCompo += if (page == 0) {
+                "\uD83D\uDEAB"[RED + HoverEvent.showText("No previous page"[RED])]
             } else {
-                "<red><hover:show_text:'<red>Previous page'><click:run_command:/mailbox ${page - 1}>←</click></hover></red>"
+                "←"[RED + Buttons.run("Previous page"[RED], "/mailbox ${page - 1}")]
             }
-            pageMini += " <yellow>|<yellow> "
-            pageMini += if (page == maxPage) {
-                "<red><hover:show_text:'<red>No next page'>\uD83D\uDEAB</hover></red>"
+            pageCompo += " | "[YELLOW]
+            pageCompo += if (page == maxPage) {
+                "\uD83D\uDEAB"[RED + HoverEvent.showText("No next page"[RED])]
             } else {
-                "<red><hover:show_text:'<red>Next page'><click:run_command:/mailbox ${page + 1}>→</click></hover></red>"
+                "→"[RED + Buttons.run("Next page"[RED], "/mailbox ${page + 1}")]
             }
-            body = body.append(pageMini.render())
+            body = body.append(pageCompo)
         }
         return body
     }
@@ -124,22 +125,15 @@ private class Mail(
             ?: throw ChattoreException("We do not recognize that user!")
         mailTimeouts[player.uniqueId] = now
         database.insertMessage(player.uniqueId, targetUuid, message)
-        player.sendRichMessage(
-            "<gold>[</gold><red>To <recipient></red><gold>]</gold> <message>",
-            "message" toS message,
-            "recipient" toS target,
-        )
+        player.sendMessage("["[GOLD] + "To $target"[RED] + "] "[GOLD] + message.c)
     }
 
     @Subcommand("read")
     fun read(player: Player, id: Int) {
         val (senderUUID, message) = database.readMessage(player.uniqueId, id)
             ?: throw ChattoreException("Invalid message ID!")
-        player.sendRichMessage(
-            "<gold>[</gold><red>From <sender></red><gold>]</gold> <message>",
-            "message" toS message,
-            "sender" toS userCache.usernameOrUuid(senderUUID),
-        )
+        val sender = userCache.usernameOrUuid(senderUUID)
+        player.sendMessage("["[GOLD] + "From $sender"[RED] + "] "[GOLD] + message.c)
     }
 }
 
@@ -153,9 +147,9 @@ private class MailListener(
         val unreadCount = database.getMessages(event.player.uniqueId).filter { !it.read }.size
         if (unreadCount > 0)
             proxy.scheduler.buildTask(plugin, Runnable {
-                event.player.sendRichMessage(
-                    "<yellow>You have <red><count></red> unread message(s)! <gold><b><hover:show_text:'View your mailbox'><click:run_command:'/mail mailbox'>Click here to view</click></hover></b></gold>.",
-                    "count" toS unreadCount.toString(),
+                event.player.sendMessage(
+                    "You have "[YELLOW] + "$unreadCount"[RED] + " unread message(s)! "[YELLOW]
+                        + "Click here to view"[GOLD + BOLD + Buttons.run("View your mailbox".c, "/mail mailbox")]
                 )
             }).delay(2L, TimeUnit.SECONDS).schedule()
     }
