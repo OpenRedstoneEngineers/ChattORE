@@ -29,7 +29,7 @@ fun PluginScope.createChatFeature(
 }
 
 private class ChatListener(
-    private val config: ChatConfirmationConfig,
+    config: ChatConfirmationConfig,
     private val flaggedMessages: ConcurrentHashMap<UUID, String>,
     private val logger: Logger,
     private val messenger: Messenger,
