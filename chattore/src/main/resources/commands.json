@@ -182,7 +182,7 @@
   {
     "command": "ban-capo",
     "description": "Capo? Banned!",
-    "globalChat": "<red>LordDecapo <gray>was banned!",
+    "globalChat": "<red><name><gray> banned <red>LordDecapo<gray>!",
     "localChat": "<gold>You thought that works huh?"
   },
   {
