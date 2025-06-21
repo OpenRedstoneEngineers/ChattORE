@@ -19,12 +19,10 @@ import java.nio.file.Path
 import kotlin.io.path.createDirectory
 import kotlin.io.path.exists
 
-const val VERSION = "1.2"
-
 @Plugin(
     id = "chattore",
     name = "ChattORE",
-    version = VERSION,
+    version = BuildConfig.VERSION,
     url = "https://openredstone.org",
     description = "Because we want to have a chat system that actually wOREks for us.",
     authors = ["Nickster258", "PaukkuPalikka", "StackDoubleFlow", "sodiboo", "Waffle [Wueffi]"],

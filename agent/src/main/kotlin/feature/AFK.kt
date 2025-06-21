@@ -1,10 +1,10 @@
 package org.openredstone.chattore.agent.feature
 
+import io.papermc.paper.event.player.AsyncChatEvent
 import me.clip.placeholderapi.expansion.PlaceholderExpansion
 import org.bukkit.OfflinePlayer
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
-import org.bukkit.event.player.AsyncPlayerChatEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.event.player.PlayerQuitEvent
@@ -56,7 +56,7 @@ class AfkListener(private val afkMap: ConcurrentHashMap<UUID, Long>) : Listener 
     }
 
     @EventHandler
-    fun onChatEvent(event: AsyncPlayerChatEvent) {
+    fun onChatEvent(event: AsyncChatEvent) {
         afkMap[event.player.uniqueId] = getTime()
     }
 }
