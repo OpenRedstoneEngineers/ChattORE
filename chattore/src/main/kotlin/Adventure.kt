@@ -13,10 +13,7 @@ operator fun Component.plus(other: Component) = append(other)
 /** Turn this string into a text component */
 val String.c: Component get() = Component.text(this)
 
-fun String.c(style: ComponentBuilderApplicable) =
-    Component.text().content(this).applicableApply(style).build()
-
-fun Component.c(style: ComponentBuilderApplicable) =
+operator fun Component.get(style: ComponentBuilderApplicable) =
     Component.text().applicableApply(this).applicableApply(style).build()
 
 /** Combine styles */

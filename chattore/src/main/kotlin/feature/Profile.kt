@@ -67,13 +67,13 @@ private class Profile(
         val nickname = database.getNickname(user.uniqueId)?.render(ign) ?: "No nickname set".c
         val rank = group.legacyDeserialize()
         return listOf(
-            "  ".c(GOLD + STRIKETHROUGH) + " Player Profile ".c(GOLD) + "  ".c(GOLD + STRIKETHROUGH),
+            "  ".c[GOLD + STRIKETHROUGH] + " Player Profile ".c[GOLD] + "  ".c[GOLD + STRIKETHROUGH],
             "IGN: $ign".c,
             "Nickname: ".c + nickname,
             "Rank: ".c + rank,
-            "                        ".c(GOLD + STRIKETHROUGH),
-            "About me: ".c + about.c(YELLOW),
-            "                        ".c(GOLD + STRIKETHROUGH),
+            "                        ".c[GOLD + STRIKETHROUGH],
+            "About me: ".c + about.c[YELLOW],
+            "                        ".c[GOLD + STRIKETHROUGH],
         ).join(Component.newline())
     }
 }

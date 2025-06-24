@@ -31,7 +31,7 @@ private class CommandListener(
     @Subscribe
     fun onCommandEvent(event: CommandExecuteEvent) {
         val sender = (event.commandSource as? Player)?.username ?: "Console"
-        spies.sendMessage("$sender: ${event.command}".c(GOLD))
+        spies.sendMessage("$sender: ${event.command}".c[GOLD])
     }
 }
 

@@ -16,6 +16,7 @@ import org.openredstone.chattore.PluginScope
 import org.openredstone.chattore.c
 import org.openredstone.chattore.common.ALIAS_CHANNEL
 import org.openredstone.chattore.common.AliasMessage
+import org.openredstone.chattore.get
 import org.slf4j.Logger
 
 private val IDENTIFIER: MinecraftChannelIdentifier = MinecraftChannelIdentifier.from(ALIAS_CHANNEL)
@@ -123,7 +124,7 @@ private class PluginMessageListener(private val logger: Logger) {
         when (val src = message.source) {
             is Player -> {
                 logger.warn("Player ${src.username} (${src.uniqueId}) tried to send a plugin message to $IDENTIFIER!")
-                src.disconnect("We don't really like it when you try to break things".c(RED))
+                src.disconnect("We don't really like it when you try to break things".c[RED])
             }
             // is ServerConnection for when we want to handle messages from chattoreagent
         }
