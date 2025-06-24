@@ -59,9 +59,9 @@ private class ChatListener(
         val highlighted = matches.fold(message, String::highlight).render()
         logger.info("${player.username} (${player.uniqueId}) Attempting to send flagged message: $message")
         player.sendMessage(
-            "The following message was not sent because it contained potentially inappropriate language:"[RED + BOLD]
+            "The following message was not sent because it contained potentially inappropriate language:".c(RED + BOLD)
                 + Component.newline() + highlighted + Component.newline()
-                + "To send this message anyway, run "[RED] + "/confirmmessage"[GRAY] + "."[RED]
+                + "To send this message anyway, run ".c(RED) + "/confirmmessage".c(GRAY) + ".".c(RED)
         )
         flaggedMessages[player.uniqueId] = message
         return true

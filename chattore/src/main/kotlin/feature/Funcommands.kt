@@ -28,23 +28,23 @@ private class FunCommandsCommand(
     @Default
     @Description("Displays information about the /funcommands command")
     fun onDefault(player: Player) {
-        player.sendMessage("FunCommands v1.1 by "[GREEN] + "Waffle [Wueffi]"[GOLD])
+        player.sendMessage("FunCommands v1.1 by ".c(GREEN) + "Waffle [Wueffi]".c(GOLD))
     }
 
     @Subcommand("list")
     @Description("Lists all available Fun Commands in alphabetical order")
     fun onList(player: Player) {
         if (commands.isEmpty()) {
-            player.sendMessage("No Fun Commands found."[RED])
+            player.sendMessage("No Fun Commands found.".c(RED))
             return
         }
 
-        player.sendMessage("Available Fun Commands:"[YELLOW])
+        player.sendMessage("Available Fun Commands:".c(YELLOW))
 
         commands
             .sortedBy { it.command }
             .map {
-                "/${it.command}"[Buttons.suggest(it.description.c, "/${it.command}")]
+                "/${it.command}".c(Buttons.suggest(it.description.c, "/${it.command}"))
             }
             .join(" ".c)
             .let(player::sendMessage)
@@ -61,7 +61,7 @@ private class FunCommandsCommand(
         val cmd = commands.find { it.command.equals(commandName, ignoreCase = true) }
             ?: throw ChattoreException("Command '$commandName' not found.")
 
-        player.sendMessage("Description for "[GOLD] + "/${cmd.command}"[YELLOW] + ": ${cmd.description}"[GOLD])
+        player.sendMessage("Description for ".c(GOLD) + "/${cmd.command}".c(YELLOW) + ": ${cmd.description}".c(GOLD))
     }
 }
 

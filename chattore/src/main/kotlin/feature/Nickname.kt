@@ -155,12 +155,12 @@ private class Nickname(
             val renderedPreset = preset.render(presetName)
             val rendered = if (shownText == null) {
                 // Primarily show the preset name, else a preview of the nickname.
-                renderedPreset[HoverEvent.showText("Click to apply ".c + preset.render(player.username))]
+                renderedPreset.c(HoverEvent.showText("Click to apply ".c + preset.render(player.username)))
             } else {
                 // Primarily show the entered text, else the preset name.
                 // Also, we're suggesting the username as the autocompleted $shownText.
-                preset.render(shownText)[HoverEvent.showText("Click to apply ".c + renderedPreset + " preset".c)]
-            }.let { it[ClickEvent.runCommand("/nick preset $presetName")] }
+                preset.render(shownText).c(HoverEvent.showText("Click to apply ".c + renderedPreset + " preset".c))
+            }.let { it.c(ClickEvent.runCommand("/nick preset $presetName")) }
             renderedPresets.add(rendered)
         }
 

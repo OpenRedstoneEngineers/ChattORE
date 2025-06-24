@@ -7,19 +7,17 @@ import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 
-/** Create a text component from this string with [style] */
-operator fun String.get(style: ComponentBuilderApplicable) =
-    Component.text().content(this).applicableApply(style).build()
-
-/** Apply [style] to this Component */
-operator fun Component.get(style: ComponentBuilderApplicable) =
-    Component.text().applicableApply(this).applicableApply(style).build()
-
 /** Concatenate components */
 operator fun Component.plus(other: Component) = append(other)
 
 /** Turn this string into a text component */
 val String.c: Component get() = Component.text(this)
+
+fun String.c(style: ComponentBuilderApplicable) =
+    Component.text().content(this).applicableApply(style).build()
+
+fun Component.c(style: ComponentBuilderApplicable) =
+    Component.text().applicableApply(this).applicableApply(style).build()
 
 /** Combine styles */
 operator fun ComponentBuilderApplicable.plus(other: ComponentBuilderApplicable) = ComponentBuilderApplicable {
