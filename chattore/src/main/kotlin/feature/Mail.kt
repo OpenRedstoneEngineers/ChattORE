@@ -52,14 +52,15 @@ data class MailboxItem(
 
 private class MailContainer(private val userCache: UserCache, private val messages: List<MailboxItem>) {
     private val pageSize = 6
-    fun getPage(page: Int = 0): Component {
+    fun getPage(page: Int = 0): Component = buildTextComponent {
         val maxPage = messages.size / pageSize
         if (page > maxPage || page < 0) {
-            return "Invalid page requested".c
+            append("Invalid page requested".c)
+            return@buildTextComponent
         }
         val pageStart = page * pageSize
         val requestedMessages = messages.subList(pageStart, min(messages.size, pageStart + pageSize))
-        var body = "Mailbox, page $page"[RED] + Component.newline() + "ID: Sender Timestamp"[GOLD]
+        append("Mailbox, page $page"[RED] + Component.newline() + "ID: Sender Timestamp"[GOLD])
         requestedMessages.forEach {
             val readComponent = if (it.read) {
                 "Read"[ITALIC + YELLOW]
@@ -69,26 +70,26 @@ private class MailContainer(private val userCache: UserCache, private val messag
             val sender = userCache.usernameOrUuid(it.sender)
             val timestamp = getRelativeTimestamp(it.timestamp.toLong())
             val btnRead = Buttons.run("Click to read"[RED], "/mail read ${it.id}")
-            val item = ("From: "[YELLOW] + sender[GOLD] + ", $timestamp"[YELLOW])[btnRead] +
-                " ("[YELLOW] + readComponent + ")"[YELLOW]
-            body = body.append(Component.newline() + item)
+            appendNewline()
+            append(
+                ("From: "[YELLOW] + sender[GOLD] + ", $timestamp"[YELLOW])[btnRead] +
+                    " ("[YELLOW] + readComponent + ")"[YELLOW]
+            )
         }
         if (maxPage > 0) {
-            var pageCompo = Component.newline() as Component
-            pageCompo += if (page == 0) {
-                "\uD83D\uDEAB"[RED + HoverEvent.showText("No previous page"[RED])]
+            appendNewline()
+            if (page == 0) {
+                append("\uD83D\uDEAB"[RED + HoverEvent.showText("No previous page"[RED])])
             } else {
-                "←"[RED + Buttons.run("Previous page"[RED], "/mailbox ${page - 1}")]
+                append("←"[RED + Buttons.run("Previous page"[RED], "/mailbox ${page - 1}")])
             }
-            pageCompo += " | "[YELLOW]
-            pageCompo += if (page == maxPage) {
-                "\uD83D\uDEAB"[RED + HoverEvent.showText("No next page"[RED])]
+            append(" | "[YELLOW])
+            if (page == maxPage) {
+                append("\uD83D\uDEAB"[RED + HoverEvent.showText("No next page"[RED])])
             } else {
-                "→"[RED + Buttons.run("Next page"[RED], "/mailbox ${page + 1}")]
+                append("→"[RED + Buttons.run("Next page"[RED], "/mailbox ${page + 1}")])
             }
-            body = body.append(pageCompo)
         }
-        return body
     }
 }
 

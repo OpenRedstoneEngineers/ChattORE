@@ -3,6 +3,7 @@ package org.openredstone.chattore
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.ComponentBuilderApplicable
 import net.kyori.adventure.text.JoinConfiguration
+import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 
@@ -14,6 +15,7 @@ operator fun String.get(style: ComponentBuilderApplicable) =
 operator fun Component.get(style: ComponentBuilderApplicable) =
     Component.text().applicableApply(this).applicableApply(style).build()
 
+/** Concatenate components */
 operator fun Component.plus(other: Component) = append(other)
 
 /** Turn this string into a text component */
@@ -24,9 +26,18 @@ operator fun ComponentBuilderApplicable.plus(other: ComponentBuilderApplicable) 
     it.applicableApply(this).applicableApply(other)
 }
 
-// TODO maybe use adventure-extra-kotlin?
-fun Iterable<Component>.join(separator: Component = Component.empty()): Component =
-    Component.join(JoinConfiguration.separator(separator), this)
+fun buildTextComponent(f: TextComponent.Builder.() -> Unit): Component = Component.text().apply(f).build()
+
+fun Iterable<Component>.join(
+    separator: Component? = null,
+    prefix: Component? = null,
+    suffix: Component? = null,
+    lastSeparator: Component? = null,
+): Component =
+    Component.join(
+        JoinConfiguration.builder().separator(separator).prefix(prefix).suffix(suffix).lastSeparator(lastSeparator),
+        this,
+    )
 
 object Buttons {
     fun suggest(hover: Component, command: String): ComponentBuilderApplicable =
