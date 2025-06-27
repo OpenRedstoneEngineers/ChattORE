@@ -8,7 +8,7 @@ import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 
 /** Concatenate components */
-operator fun Component.plus(other: Component) = append(other)
+operator fun Component.plus(other: Component) = Component.text().append(this).append(other).build()
 
 /** Turn this string into a text component */
 val String.c: Component get() = Component.text(this)
