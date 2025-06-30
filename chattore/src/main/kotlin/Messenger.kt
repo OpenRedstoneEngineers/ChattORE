@@ -73,6 +73,7 @@ class Messenger(
     fun broadcastChatMessage(originServer: String, player: Player, message: String) {
         val userId = player.uniqueId
         val userManager = luckPerms.userManager
+        // TODO: oopsies? what if this returns null
         val luckUser = userManager.getUser(userId) ?: return
         val name = database.getNickname(userId) ?: NickPreset(player.username)
         val btn = Buttons.run(
@@ -101,22 +102,15 @@ class Messenger(
         proxy.eventManager.fireAndForget(discordBroadcast)
     }
 
+    // TODO: player is only used for permission check. plz remove
     fun prepareChatMessage(
         message: String,
         player: Player?,
     ): Component {
         val canObfuscate = player?.hasPermission("chattore.chat.obfuscate") ?: false
-        val parts = urlRegex.split(message)
-        val matches = urlRegex.findAll(message).iterator()
-        val builder = Component.text()
-        parts.forEach { part ->
-            builder.append(part.legacyDeserialize(canObfuscate))
-            if (matches.hasNext()) {
-                val nextMatch = matches.next()
-                builder.append(formatLink(nextMatch.groupValues[1]))
-            }
-        }
-        return builder.build().performReplacements(chatReplacements)
+        return message.splitMap(urlRegex, noMatch = { it.legacyDeserialize(canObfuscate) }) {
+            formatLink(it.groupValues[1])
+        }.join().performReplacements(chatReplacements)
     }
 
     private fun formatLink(str: String): Component {

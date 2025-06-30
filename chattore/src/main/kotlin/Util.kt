@@ -109,3 +109,24 @@ fun ProxyServer.allBut(player: Player) = all { it != player }
 val ProxyServer.all get() = ForwardingAudience { allPlayers }
 
 val Player.hasChattorePrivilege get() = hasPermission("chattore.privileged")
+
+fun <T> String.splitMap(pattern: Regex, noMatch: (String) -> T, onMatch: (MatchResult) -> T): List<T> {
+    val result = mutableListOf<T>()
+    var i = 0
+    while (i < length) {
+        val m = pattern.find(this, startIndex = i)
+        if (m == null || m.range.endInclusive < i) {
+            // nothing matched or empty match
+            result.add(noMatch(substring(i)))
+            break
+        }
+        val matchStart = m.range.start
+        if (matchStart != i) {
+            // some text before match
+            result.add(noMatch(substring(i, matchStart)))
+        }
+        result.add(onMatch(m))
+        i = m.range.endInclusive + 1
+    }
+    return result
+}

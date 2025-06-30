@@ -35,7 +35,8 @@ private class ChatListener(
     private val logger: Logger,
     private val messenger: Messenger,
 ) {
-    private val regexes = config.regexes.map(::Regex)
+    // splitMap guards against empty regex (from empty regex list), but maybe better to not call it at all
+    private val regex = config.regexes.ifEmpty { null }?.joinToString(separator = "|") { "($it)" }?.toRegex()
 
     @Subscribe
     fun onChatEvent(event: PlayerChatEvent) {
@@ -49,14 +50,16 @@ private class ChatListener(
     }
 
     private fun isFlagged(player: Player, message: String): Boolean {
-        val matches = regexes.filter { it.containsMatchIn(message) }
-        if (matches.isEmpty()) {
+        if (regex == null) return false
+        var hasMatch = false
+        val highlighted = message.splitMap(regex, noMatch = Component::text) {
+            hasMatch = true
+            it.value.c[RED]
+        }.join()
+        if (!hasMatch) {
             flaggedMessages.remove(player.uniqueId)
             return false
         }
-        // TODO do this with components later
-        fun String.highlight(r: Regex) = r.replace(this) { match -> "<red>${match.value}</red>" }
-        val highlighted = matches.fold(message, String::highlight).render()
         logger.info("${player.username} (${player.uniqueId}) Attempting to send flagged message: $message")
         player.sendMessage(
             "The following message was not sent because it contained potentially inappropriate language:".c[RED + BOLD]
@@ -78,7 +81,7 @@ private class ConfirmMessage(
     @Default
     fun default(player: Player) {
         val message = flaggedMessages[player.uniqueId] ?: throw ChattoreException("You have no message to confirm!")
-        player.sendRichMessage("<red>Override recognized")
+        player.sendMessage("Override recognized".c[RED])
         flaggedMessages.remove(player.uniqueId)
         logger.info("${player.username} (${player.uniqueId}) FLAGGED MESSAGE OVERRIDE: $message")
         player.currentServer.ifPresent { server ->
