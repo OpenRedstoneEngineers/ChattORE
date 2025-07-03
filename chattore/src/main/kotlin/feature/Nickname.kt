@@ -155,16 +155,16 @@ private class Nickname(
             val renderedPreset = preset.render(presetName)
             val rendered = if (shownText == null) {
                 // Primarily show the preset name, else a preview of the nickname.
-                renderedPreset[HoverEvent.showText("Click to apply ".c + preset.render(player.username))]
+                renderedPreset.with(HoverEvent.showText(c("Click to apply ".c, preset.render(player.username))))
             } else {
                 // Primarily show the entered text, else the preset name.
                 // Also, we're suggesting the username as the autocompleted $shownText.
-                preset.render(shownText)[HoverEvent.showText("Click to apply ".c + renderedPreset + " preset".c)]
-            }.let { it[ClickEvent.runCommand("/nick preset $presetName")] }
+                preset.render(shownText).with(HoverEvent.showText(c("Click to apply ".c, renderedPreset, " preset".c)))
+            }.let { it.with(ClickEvent.runCommand("/nick preset $presetName")) }
             renderedPresets.add(rendered)
         }
 
-        player.sendInfo("Available presets: ".c + renderedPresets.join(", ".c))
+        player.sendInfo(c("Available presets: ".c, renderedPresets.join(", ".c)))
     }
 
     @Subcommand("nick")
@@ -200,11 +200,11 @@ private class Nickname(
 
     private fun CommandSource.notifyExecutor(target: User, nickname: NickPreset) {
         val targetName = userCache.usernameOrUuid(target)
-        sendInfo("Set nickname for $targetName as ".c + nickname.render(targetName) + ".".c)
+        sendInfo(c("Set nickname for $targetName as ".c, nickname.render(targetName), ".".c))
     }
 
     private fun Player.notifyOfNickChange(nickname: NickPreset) =
-        sendInfo("Your nickname has been set to ".c + nickname.render(username))
+        sendInfo(c("Your nickname has been set to ".c, nickname.render(username)))
 }
 
 private class NicknameListener(

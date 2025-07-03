@@ -6,14 +6,25 @@ import net.kyori.adventure.text.JoinConfiguration
 import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
+import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextDecoration
+
+val PLAIN = ComponentBuilderApplicable { }
 
 /** Concatenate components */
-operator fun Component.plus(other: Component) = Component.text().append(this).append(other).build()
+fun c(vararg components: Component, style: ComponentBuilderApplicable = PLAIN): Component =
+    Component.text().append(*components).applicableApply(style).build()
 
 /** Turn this string into a text component */
 val String.c: Component get() = Component.text(this)
 
-operator fun Component.get(style: ComponentBuilderApplicable) =
+operator fun String.get(vararg style: ComponentBuilderApplicable) = buildTextComponent {
+    content(this@get)
+    style.forEach(::applicableApply)
+    build()
+}
+
+fun Component.with(style: ComponentBuilderApplicable) =
     Component.text().applicableApply(this).applicableApply(style).build()
 
 /** Combine styles */

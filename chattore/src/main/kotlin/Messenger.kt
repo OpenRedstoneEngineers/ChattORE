@@ -66,7 +66,7 @@ class Messenger(
             .replacement { result, _ ->
                 val match = result.group(1)
                 val content = emojis.nameToEmoji[match] ?: ":$match:"
-                content.c[HoverEvent.showText(match.c)]
+                content[HoverEvent.showText(match.c)]
             }
             .build()
 
@@ -77,10 +77,10 @@ class Messenger(
         val luckUser = userManager.getUser(userId) ?: return
         val name = database.getNickname(userId) ?: NickPreset(player.username)
         val btn = Buttons.run(
-            "${player.username} | ".c + "Click for more".c[ITALIC],
+            c("${player.username} | ".c, "Click for more"[ITALIC]),
             "/playerprofile info ${player.username}",
         )
-        val sender = name.render(player.username)[btn]
+        val sender = name.render(player.username).with(btn)
         val prefix = luckUser.cachedData.metaData.prefix
             ?: luckUser.primaryGroup.replaceFirstChar(Char::uppercaseChar)
 
@@ -137,7 +137,7 @@ class Messenger(
             else -> "\uD83D\uDCCE"
         }
         val linkStr = link.toString()
-        return "[$symbol $name]".c[AQUA + Buttons.url(linkStr.c[AQUA], linkStr)]
+        return "[$symbol $name]"[AQUA, Buttons.url(linkStr[AQUA], linkStr)]
     }
 
     private fun Component.performReplacements(replacements: List<TextReplacementConfig>): Component =

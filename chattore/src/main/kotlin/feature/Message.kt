@@ -67,10 +67,10 @@ private fun sendMessage(
         "${sender.username} (${sender.uniqueId}) -> " +
             "${recipient.username} (${recipient.uniqueId}): $message"
     )
-    fun prefix(from: String, to: String) = "[".c[GOLD] + from.c[RED] + " -> ".c[GOLD] + to.c[RED] + "] ".c[GOLD]
+    fun prefix(from: String, to: String) = c("["[GOLD], from[RED], " -> "[GOLD], to[RED], "] "[GOLD])
     val prepared = messenger.prepareChatMessage(message, sender)
-    sender.sendMessage(prefix("me", recipient.username) + prepared)
-    recipient.sendMessage(prefix(sender.username, "me") + prepared)
+    sender.sendMessage(c(prefix("me", recipient.username), prepared))
+    recipient.sendMessage(c(prefix(sender.username, "me"), prepared))
     replyMap[recipient.uniqueId] = sender.uniqueId
     replyMap[sender.uniqueId] = recipient.uniqueId
 }

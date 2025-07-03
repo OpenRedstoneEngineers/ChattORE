@@ -16,7 +16,7 @@ private class Chattore : BaseCommand() {
     @CatchUnknown
     @Subcommand("version")
     fun version(player: Player) {
-        player.sendInfo("Version ".c + BuildConfig.VERSION.c[GRAY])
+        player.sendInfo(c("Version ".c, BuildConfig.VERSION[GRAY]))
     }
 
     @Subcommand("reload")

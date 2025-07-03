@@ -124,7 +124,7 @@ private class PluginMessageListener(private val logger: Logger) {
         when (val src = message.source) {
             is Player -> {
                 logger.warn("Player ${src.username} (${src.uniqueId}) tried to send a plugin message to $IDENTIFIER!")
-                src.disconnect("We don't really like it when you try to break things".c[RED])
+                src.disconnect("We don't really like it when you try to break things"[RED])
             }
             // is ServerConnection for when we want to handle messages from chattoreagent
         }

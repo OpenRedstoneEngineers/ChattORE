@@ -40,8 +40,8 @@ private class EmojiCommand(
             throw ChattoreException("The following are not valid emojis: ${notEmoji.joinToString(", ")}")
         }
         emojiNames
-            .map { emojis.getValue(it).c[HoverEvent.showText(it.c)] }
+            .map { emojis.getValue(it)[HoverEvent.showText(it.c)] }
             .join(", ".c)
-            .let { player.sendInfo("Emojis: ".c + it) }
+            .let { player.sendInfo(c("Emojis: ".c, it)) }
     }
 }

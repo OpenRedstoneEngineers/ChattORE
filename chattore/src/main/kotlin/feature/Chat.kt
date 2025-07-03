@@ -54,7 +54,7 @@ private class ChatListener(
         var hasMatch = false
         val highlighted = message.splitMap(regex, noMatch = Component::text) {
             hasMatch = true
-            it.value.c[RED]
+            it.value[RED]
         }.join()
         if (!hasMatch) {
             flaggedMessages.remove(player.uniqueId)
@@ -62,9 +62,11 @@ private class ChatListener(
         }
         logger.info("${player.username} (${player.uniqueId}) Attempting to send flagged message: $message")
         player.sendMessage(
-            "The following message was not sent because it contained potentially inappropriate language:".c[RED + BOLD]
-                + Component.newline() + highlighted + Component.newline()
-                + "To send this message anyway, run ".c[RED] + "/confirmmessage".c[GRAY] + ".".c[RED]
+            c(
+                "The following message was not sent because it contained potentially inappropriate language:"[RED, BOLD],
+                Component.newline(), highlighted, Component.newline(),
+                "To send this message anyway, run "[RED], "/confirmmessage"[GRAY], "."[RED]
+            )
         )
         flaggedMessages[player.uniqueId] = message
         return true
@@ -81,7 +83,7 @@ private class ConfirmMessage(
     @Default
     fun default(player: Player) {
         val message = flaggedMessages[player.uniqueId] ?: throw ChattoreException("You have no message to confirm!")
-        player.sendMessage("Override recognized".c[RED])
+        player.sendMessage("Override recognized"[RED])
         flaggedMessages.remove(player.uniqueId)
         logger.info("${player.username} (${player.uniqueId}) FLAGGED MESSAGE OVERRIDE: $message")
         player.currentServer.ifPresent { server ->

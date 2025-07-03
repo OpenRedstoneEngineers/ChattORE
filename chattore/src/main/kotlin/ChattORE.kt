@@ -95,7 +95,7 @@ class ChattORE @Inject constructor(
         val exception = throwable as? ChattoreException ?: return false
         val message = exception.message ?: "Something went wrong!"
         if (sender is Player) {
-            sender.sendMessage("Oh NO ! ".c[BOLD + RED] + ": ".c[GRAY] + message.c[RED])
+            sender.sendMessage(c("Oh NO ! "[BOLD, RED], ": "[GRAY], message[RED]))
         } else {
             sender.sendMessage("Error: $message")
         }

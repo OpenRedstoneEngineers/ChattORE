@@ -29,6 +29,6 @@ private class HelpOp(
         if (statement.isEmpty()) throw ChattoreException("You have to have a problem first!") // : )
         logger.info("[HelpOp] ${player.username}: $statement")
         proxy.all { it.hasChattorePrivilege || it.uniqueId == player.uniqueId }
-            .sendMessage("[".c[GOLD] + "Help".c[RED] + "] ".c[GOLD] + player.username.c[RED] + ":".c[GOLD] + " $statement".c)
+            .sendMessage(c("["[GOLD], "Help"[RED], "] "[GOLD], player.username[RED], ":"[GOLD], " $statement".c))
     }
 }

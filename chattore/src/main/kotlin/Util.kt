@@ -51,8 +51,8 @@ fun String.render(vararg resolvers: TagResolver): Component =
 infix fun String.toS(message: String) = this toC message.c
 infix fun String.toC(message: Component) = Placeholder.component(this, message)
 
-private val infoPrefix = "[".c[GOLD] + "ChattORE".c[RED] + "]".c[GOLD]
-fun Audience.sendInfo(message: Component) = sendMessage(infoPrefix + " ".c + message)
+private val infoPrefix = c("["[GOLD], "ChattORE"[RED], "]"[GOLD])
+fun Audience.sendInfo(message: Component) = sendMessage(c(infoPrefix, " ".c, message))
 fun Audience.sendInfo(message: String) = sendInfo(message.c)
 
 /** Mirrors Player.sendRichMessage **/

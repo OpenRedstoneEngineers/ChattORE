@@ -60,34 +60,36 @@ private class MailContainer(private val userCache: UserCache, private val messag
         }
         val pageStart = page * pageSize
         val requestedMessages = messages.subList(pageStart, min(messages.size, pageStart + pageSize))
-        append("Mailbox, page $page".c[RED] + Component.newline() + "ID: Sender Timestamp".c[GOLD])
+        append(c("Mailbox, page $page"[RED], Component.newline(), "ID: Sender Timestamp"[GOLD]))
         requestedMessages.forEach {
             val readComponent = if (it.read) {
-                "Read".c[ITALIC + YELLOW]
+                "Read"[ITALIC, YELLOW]
             } else {
-                "Unread".c[BOLD + RED]
+                "Unread"[BOLD, RED]
             }
             val sender = userCache.usernameOrUuid(it.sender)
             val timestamp = getRelativeTimestamp(it.timestamp.toLong())
-            val btnRead = Buttons.run("Click to read".c[RED], "/mail read ${it.id}")
+            val btnRead = Buttons.run("Click to read"[RED], "/mail read ${it.id}")
             appendNewline()
             append(
-                ("From: ".c[YELLOW] + sender.c[GOLD] + ", $timestamp".c[YELLOW])[btnRead] +
-                    " (".c[YELLOW] + readComponent + ")".c[YELLOW]
+                c(
+                    c("From: "[YELLOW], sender[GOLD], ", $timestamp"[YELLOW], style = btnRead),
+                    " ("[YELLOW], readComponent, ")"[YELLOW]
+                )
             )
         }
         if (maxPage > 0) {
             appendNewline()
             if (page == 0) {
-                append("\uD83D\uDEAB".c[RED + HoverEvent.showText("No previous page".c[RED])])
+                append("\uD83D\uDEAB"[RED, HoverEvent.showText("No previous page"[RED])])
             } else {
-                append("←".c[RED + Buttons.run("Previous page".c[RED], "/mailbox ${page - 1}")])
+                append("←"[RED, Buttons.run("Previous page"[RED], "/mailbox ${page - 1}")])
             }
-            append(" | ".c[YELLOW])
+            append(" | "[YELLOW])
             if (page == maxPage) {
-                append("\uD83D\uDEAB".c[RED + HoverEvent.showText("No next page".c[RED])])
+                append("\uD83D\uDEAB"[RED, HoverEvent.showText("No next page"[RED])])
             } else {
-                append("→".c[RED + Buttons.run("Next page".c[RED], "/mailbox ${page + 1}")])
+                append("→"[RED, Buttons.run("Next page"[RED], "/mailbox ${page + 1}")])
             }
         }
     }
@@ -126,7 +128,7 @@ private class Mail(
             ?: throw ChattoreException("We do not recognize that user!")
         mailTimeouts[player.uniqueId] = now
         database.insertMessage(player.uniqueId, targetUuid, message)
-        player.sendMessage("[".c[GOLD] + "To $target".c[RED] + "] ".c[GOLD] + message.c)
+        player.sendMessage(c("["[GOLD], "To $target"[RED], "] "[GOLD], message.c))
     }
 
     @Subcommand("read")
@@ -134,7 +136,7 @@ private class Mail(
         val (senderUUID, message) = database.readMessage(player.uniqueId, id)
             ?: throw ChattoreException("Invalid message ID!")
         val sender = userCache.usernameOrUuid(senderUUID)
-        player.sendMessage("[".c[GOLD] + "From $sender".c[RED] + "] ".c[GOLD] + message.c)
+        player.sendMessage(c("["[GOLD], "From $sender"[RED], "] "[GOLD], message.c))
     }
 }
 
@@ -149,8 +151,10 @@ private class MailListener(
         if (unreadCount > 0)
             proxy.scheduler.buildTask(plugin, Runnable {
                 event.player.sendMessage(
-                    "You have ".c[YELLOW] + "$unreadCount".c[RED] + " unread message(s)! ".c[YELLOW]
-                        + "Click here to view".c[GOLD + BOLD + Buttons.run("View your mailbox".c, "/mail mailbox")]
+                    c(
+                        "You have "[YELLOW], "$unreadCount"[RED], " unread message(s)! "[YELLOW],
+                        "Click here to view"[GOLD, BOLD, Buttons.run("View your mailbox".c, "/mail mailbox")]
+                    )
                 )
             }).delay(2L, TimeUnit.SECONDS).schedule()
     }
