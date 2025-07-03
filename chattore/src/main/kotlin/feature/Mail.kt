@@ -73,7 +73,7 @@ private class MailContainer(private val userCache: UserCache, private val messag
             appendNewline()
             append(
                 c(
-                    c("From: "[YELLOW], sender[GOLD], ", $timestamp"[YELLOW], style = btnRead),
+                    c("From: "[YELLOW], sender[GOLD], ", $timestamp"[YELLOW]).with(btnRead),
                     " ("[YELLOW], readComponent, ")"[YELLOW]
                 )
             )
