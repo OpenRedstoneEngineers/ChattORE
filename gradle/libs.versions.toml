@@ -1,0 +1,31 @@
+[versions]
+kotlin = "2.1.21"
+kotlinx-serialization = "1.8.1"
+exposed = "0.58.0"
+jackson = "2.19.0"
+
+[libraries]
+acf = "co.aikar:acf-velocity:0.5.1-SNAPSHOT"
+javacord = "org.javacord:javacord:3.8.0"
+sqliteJdbc = "org.xerial:sqlite-jdbc:3.46.0.0"
+luckperms = "net.luckperms:api:5.1"
+paper = "io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT"
+velocity = "com.velocitypowered:velocity-api:3.3.0-SNAPSHOT"
+papi = "me.clip:placeholderapi:2.11.6"
+exposed-core = { group = "org.jetbrains.exposed", name = "exposed-core", version.ref = "exposed" }
+exposed-jdbc = { group = "org.jetbrains.exposed", name = "exposed-jdbc", version.ref = "exposed" }
+exposed-javaTime = { group = "org.jetbrains.exposed", name = "exposed-java-time", version.ref = "exposed" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+kotlinx-serialization-cbor = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-cbor", version.ref = "kotlinx-serialization" }
+kotlinx-serialization-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "kotlinx-serialization" }
+jackson-yaml = { group = "com.fasterxml.jackson.dataformat", name = "jackson-dataformat-yaml", version.ref = "jackson" }
+jackson-kotlin = { group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin", version.ref = "jackson" }
+jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind", version.ref = "jackson" }
+
+[plugins]
+shadow = { id = "com.gradleup.shadow", version = "8.3.6" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+pluginYml = { id = "de.eldoria.plugin-yml.bukkit", version = "0.7.1" }
+buildconfig = { id = "com.github.gmazzo.buildconfig", version = "5.6.5" }

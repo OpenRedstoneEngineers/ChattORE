@@ -18,6 +18,6 @@ data class FormatConfig(
     val global: String = "<prefix> <gray>|</gray> <sender><gray>:</gray> <message>",
     val join: String = "<yellow><player> has joined the network",
     val leave: String = "<yellow><player> has left the network",
-    val joinDiscord: String = "**<player> has joined the network**",
-    val leaveDiscord: String = "**<player> has left the network**",
+    val joinDiscord: String = "**%player% has joined the network**",
+    val leaveDiscord: String = "**%player% has left the network**",
 )
