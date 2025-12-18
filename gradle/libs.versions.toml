@@ -6,7 +6,7 @@ jackson = "2.19.0"
 
 [libraries]
 acf = "co.aikar:acf-velocity:0.5.1-SNAPSHOT"
-javacord = "org.javacord:javacord:3.8.0"
+kord = "dev.kord:kord-core:0.17.0"
 sqliteJdbc = "org.xerial:sqlite-jdbc:3.46.0.0"
 luckperms = "net.luckperms:api:5.1"
 paper = "io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT"

@@ -2,16 +2,19 @@ package org.openredstone.chattore.feature
 
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.proxy.ProxyServer
-import org.javacord.api.DiscordApi
-import org.javacord.api.DiscordApiBuilder
-import org.javacord.api.entity.channel.TextChannel
-import org.javacord.api.entity.intent.Intent
-import org.javacord.api.entity.message.MessageBuilder
-import org.javacord.api.event.message.MessageCreateEvent
-import org.javacord.api.listener.message.MessageCreateListener
+import dev.kord.common.annotation.KordPreview
+import dev.kord.common.entity.Snowflake
+import dev.kord.core.Kord
+import dev.kord.core.entity.channel.TextChannel
+import dev.kord.core.event.message.MessageCreateEvent
+import dev.kord.core.live.channel.live
+import dev.kord.core.live.channel.onMessageCreate
+import dev.kord.gateway.Intent
+import dev.kord.gateway.Intents
+import dev.kord.gateway.PrivilegedIntent
+import kotlinx.coroutines.*
 import org.openredstone.chattore.*
 import org.slf4j.Logger
-import kotlin.jvm.optionals.getOrNull
 
 fun String.discordEscape() = this.replace("""_""", "\\_")
 
@@ -50,49 +53,73 @@ fun PluginScope.createDiscordFeature(
     config: DiscordConfig,
 ) {
     if (!config.enable) return
-    val discordNetwork = DiscordApiBuilder()
-        .setToken(config.networkToken)
-        .addIntents(Intent.MESSAGE_CONTENT)
-        .login()
-        .join()
-    val discordMap = loadDiscordTokens(proxy, logger, config.serverTokens)
-    discordMap.forEach { (_, discordApi) -> discordApi.updateActivity(config.playingMessage) }
-    val textChannel = discordNetwork.getTextChannelById(config.channelId).getOrNull()
-        ?: throw ChattoreException("Cannot find Discord channel")
-    textChannel.addMessageCreateListener(
-        DiscordListener(logger, messenger, proxy, emojis, config)
-    )
-    registerListeners(DiscordBroadcastListener(config, discordMap, discordNetwork))
+
+    @OptIn(DelicateCoroutinesApi::class)
+    GlobalScope.launch(Dispatchers.Default) {
+        coroutineScope {
+            val discordNetwork = Kord(config.networkToken)
+            // login blocks until the bot shuts down, so we launch it in its own coroutine
+            launch {
+                discordNetwork.login {
+                    @OptIn(PrivilegedIntent::class)
+                    intents += Intent.MessageContent
+                    presence {
+                        playing(config.playingMessage)
+                    }
+                }
+            }
+            val discordMap = spawnServerBots(proxy, logger, config)
+            val textChannel = discordNetwork.getChannelOf<TextChannel>(Snowflake(config.channelId))
+                ?: throw ChattoreException("Cannot find Discord channel")
+            val listener = DiscordListener(logger, messenger, proxy, emojis, config)
+            @OptIn(KordPreview::class)
+            textChannel.live().onMessageCreate(block = listener::onMessageCreate)
+            registerListeners(createBroadcastListener(config, discordMap, discordNetwork))
+        }
+    }
 }
+
+private suspend fun CoroutineScope.createBroadcastListener(
+    config: DiscordConfig,
+    discordMap: Map<String, Kord>,
+    discordApi: Kord,
+) = DiscordBroadcastListener(
+    config,
+    serverChannelMapping = discordMap.entries.associate { (server, api) ->
+        server to (api.getChannelOf<TextChannel>(Snowflake(config.channelId))
+            ?: throw IllegalArgumentException("Could not get specified channel"))
+    },
+    mainBotChannel = discordApi.getChannelOf<TextChannel>(Snowflake(config.channelId))
+        ?: throw IllegalArgumentException("Could not get specified channel"),
+    this,
+)
+
 
 private class DiscordBroadcastListener(
     private val config: DiscordConfig,
-    discordMap: Map<String, DiscordApi>,
-    discordApi: DiscordApi,
+    private val serverChannelMapping: Map<String, TextChannel>,
+    private val mainBotChannel: TextChannel,
+    private val scope: CoroutineScope,
 ) {
-    private val serverChannelMapping: Map<String, TextChannel> = discordMap.entries.associate { (server, api) ->
-        server to (api.getTextChannelById(config.channelId).getOrNull()
-            ?: throw IllegalArgumentException("Could not get specified channel"))
-    }
-
-    private val mainBotChannel: TextChannel = discordApi.getTextChannelById(config.channelId).getOrNull()
-        ?: throw IllegalArgumentException("Could not get specified channel")
-
     @Subscribe
     fun onBroadcastEvent(event: DiscordBroadcastEvent) {
-        val channel = serverChannelMapping[event.server] ?: return
-        val content = config.discordFormat
-            .replace("%prefix%", event.prefix)
-            .replace("%sender%", event.sender.discordEscape())
-            .replace("%message%", event.message)
-        MessageBuilder().setContent(content).send(channel)
+        scope.launch {
+            val channel = serverChannelMapping[event.server] ?: return@launch
+            val content = config.discordFormat
+                .replace("%prefix%", event.prefix)
+                .replace("%sender%", event.sender.discordEscape())
+                .replace("%message%", event.message)
+            channel.createMessage(content)
+        }
     }
 
     @Subscribe
     fun onBroadcastEventRaw(event: DiscordBroadcastEventMain) {
-        val message = event.format
-            .replace("%player%", event.player.discordEscape())
-        MessageBuilder().setContent(message).send(mainBotChannel)
+        scope.launch {
+            val message = event.format
+                .replace("%player%", event.player.discordEscape())
+            mainBotChannel.createMessage(message)
+        }
     }
 }
 
@@ -102,7 +129,7 @@ private class DiscordListener(
     private val proxy: ProxyServer,
     private val emojis: Emojis,
     private val config: DiscordConfig,
-) : MessageCreateListener {
+) {
 
     private val emojiPattern = emojis.emojiToName.keys.joinToString("|", "(", ")") { Regex.escape(it) }
     private val emojiRegex = Regex(emojiPattern)
@@ -114,11 +141,18 @@ private class DiscordListener(
         if (emojiName != null) ":$emojiName:" else emoji
     }
 
-    override fun onMessageCreate(event: MessageCreateEvent) {
-        if (event.messageAuthor.isBotUser && event.messageAuthor.id != config.chadId) return
-        val attachments = event.messageAttachments.joinToString(" ", " ") { it.url.toString() }
-        val toSend = replaceEmojis(event.message.readableContent) + attachments
-        logger.info("[Discord] ${event.messageAuthor.displayName} (${event.messageAuthor.id}): $toSend")
+    suspend fun onMessageCreate(event: MessageCreateEvent) {
+        val sender = event.member ?: run {
+            // TODO: just throw and catch somewhere
+            // make sure it doesn't cancel the coroutine scope
+            logger.error("Message (id: ${event.message.id}) sent by non-member!")
+            return
+        }
+        if (sender.isBot && sender.id != Snowflake(config.chadId)) return
+        val attachments = event.message.attachments.joinToString(" ", " ") { it.url }
+        val toSend = replaceEmojis(event.message.content) + attachments
+        val displayName = sender.effectiveName
+        logger.info("[Discord] $displayName (${sender.id}): $toSend")
         val transformedMessage = toSend.replace(urlMarkdownRegex) { matchResult ->
             val text = matchResult.groupValues[1].trim()
             val url = matchResult.groupValues[2].trim()
@@ -126,17 +160,18 @@ private class DiscordListener(
         }.replace("""\s+""".toRegex(), " ")
         proxy.all.sendRichMessage(
             config.ingameFormat,
-            "sender" toS event.messageAuthor.displayName,
+            "sender" toS displayName,
             "message" toC messenger.prepareChatMessage(transformedMessage, null),
         )
     }
 }
 
-private fun loadDiscordTokens(
+private suspend fun CoroutineScope.spawnServerBots(
     proxy: ProxyServer,
     logger: Logger,
-    serverTokens: Map<String, String>,
-): Map<String, DiscordApi> {
+    config: DiscordConfig,
+): Map<String, Kord> {
+    val serverTokens = config.serverTokens
     val availableServers = proxy.allServers.map { it.serverInfo.name.lowercase() }.sorted()
     val configServers = serverTokens.map { it.key.lowercase() }.sorted()
     if (availableServers != configServers) {
@@ -149,9 +184,16 @@ private fun loadDiscordTokens(
         )
     }
     return serverTokens.mapValues { (_, token) ->
-        DiscordApiBuilder()
-            .setToken(token)
-            .login()
-            .join()
+        Kord(token).also {
+            launch {
+                it.login {
+                    // server bots don't need any intents
+                    intents = Intents()
+                    presence {
+                        playing(config.playingMessage)
+                    }
+                }
+            }
+        }
     }
 }

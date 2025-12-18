@@ -12,7 +12,7 @@ plugins {
 dependencies {
     implementation(project(":common"))
     implementation(libs.acf)
-    implementation(libs.javacord)
+    implementation(libs.kord)
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
     implementation(libs.exposed.javaTime)
