@@ -1,6 +1,7 @@
 package org.openredstone.chattore.feature
 
 import com.velocitypowered.api.event.Subscribe
+import com.velocitypowered.api.event.proxy.ProxyShutdownEvent
 import com.velocitypowered.api.proxy.ProxyServer
 import dev.kord.common.annotation.KordPreview
 import dev.kord.common.entity.Snowflake
@@ -75,6 +76,16 @@ fun PluginScope.createDiscordFeature(
             @OptIn(KordPreview::class)
             mainBotChannel.live().onMessageCreate(block = listener::onMessageCreate)
             registerListeners(DiscordBroadcastListener(config, serverChannels, mainBotChannel, this))
+            onEvent<ProxyShutdownEvent> {
+                // block so that velocity waits before shutting down
+                // future considerations:
+                // - can this use async velocity events?
+                // - should we do the shutdowns concurrently?
+                runBlocking {
+                    discordNetwork.shutdown()
+                    discordMap.forEach { (_, kord) -> kord.shutdown() }
+                }
+            }
         }
     }
 }
