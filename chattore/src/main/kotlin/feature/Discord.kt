@@ -69,31 +69,18 @@ fun PluginScope.createDiscordFeature(
                 }
             }
             val discordMap = spawnServerBots(proxy, logger, config)
-            val textChannel = discordNetwork.getChannelOf<TextChannel>(Snowflake(config.channelId))
-                ?: throw ChattoreException("Cannot find Discord channel")
+            val serverChannels = discordMap.mapValues { (_, api) -> getGameChat(api, config.channelId) }
+            val mainBotChannel = getGameChat(discordNetwork, config.channelId)
             val listener = DiscordListener(logger, messenger, proxy, emojis, config)
             @OptIn(KordPreview::class)
-            textChannel.live().onMessageCreate(block = listener::onMessageCreate)
-            registerListeners(createBroadcastListener(config, discordMap, discordNetwork))
+            mainBotChannel.live().onMessageCreate(block = listener::onMessageCreate)
+            registerListeners(DiscordBroadcastListener(config, serverChannels, mainBotChannel, this))
         }
     }
 }
 
-private suspend fun CoroutineScope.createBroadcastListener(
-    config: DiscordConfig,
-    discordMap: Map<String, Kord>,
-    discordApi: Kord,
-) = DiscordBroadcastListener(
-    config,
-    serverChannelMapping = discordMap.entries.associate { (server, api) ->
-        server to (api.getChannelOf<TextChannel>(Snowflake(config.channelId))
-            ?: throw IllegalArgumentException("Could not get specified channel"))
-    },
-    mainBotChannel = discordApi.getChannelOf<TextChannel>(Snowflake(config.channelId))
-        ?: throw IllegalArgumentException("Could not get specified channel"),
-    this,
-)
-
+private suspend fun getGameChat(api: Kord, id: Long): TextChannel = api.getChannelOf(Snowflake(id))
+    ?: throw IllegalArgumentException("Cannot find game-chat channel")
 
 private class DiscordBroadcastListener(
     private val config: DiscordConfig,
@@ -130,7 +117,6 @@ private class DiscordListener(
     private val emojis: Emojis,
     private val config: DiscordConfig,
 ) {
-
     private val emojiPattern = emojis.emojiToName.keys.joinToString("|", "(", ")") { Regex.escape(it) }
     private val emojiRegex = Regex(emojiPattern)
     private val urlMarkdownRegex = """\[([^]]*)]\(\s?(\S+)\s?\)""".toRegex()
@@ -141,13 +127,9 @@ private class DiscordListener(
         if (emojiName != null) ":$emojiName:" else emoji
     }
 
-    suspend fun onMessageCreate(event: MessageCreateEvent) {
-        val sender = event.member ?: run {
-            // TODO: just throw and catch somewhere
-            // make sure it doesn't cancel the coroutine scope
-            logger.error("Message (id: ${event.message.id}) sent by non-member!")
-            return
-        }
+    fun onMessageCreate(event: MessageCreateEvent) {
+        // guaranteed to not happen because events are filtered beforehand
+        val sender = event.member ?: throw IllegalStateException("onMessageCreate: event.member is null")
         if (sender.isBot && sender.id != Snowflake(config.chadId)) return
         val attachments = event.message.attachments.joinToString(" ", " ") { it.url }
         val toSend = replaceEmojis(event.message.content) + attachments
@@ -184,16 +166,16 @@ private suspend fun CoroutineScope.spawnServerBots(
         )
     }
     return serverTokens.mapValues { (_, token) ->
-        Kord(token).also {
-            launch {
-                it.login {
-                    // server bots don't need any intents
-                    intents = Intents()
-                    presence {
-                        playing(config.playingMessage)
-                    }
+        val kord = Kord(token)
+        launch {
+            kord.login {
+                // server bots don't need any intents
+                intents = Intents()
+                presence {
+                    playing(config.playingMessage)
                 }
             }
         }
+        kord
     }
 }
