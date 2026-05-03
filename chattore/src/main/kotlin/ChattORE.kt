@@ -1,16 +1,12 @@
 package org.openredstone.chattore
 
-import co.aikar.commands.BaseCommand
-import co.aikar.commands.CommandIssuer
-import co.aikar.commands.RegisteredCommand
-import co.aikar.commands.VelocityCommandManager
+import co.aikar.commands.*
 import com.google.inject.Inject
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent
 import com.velocitypowered.api.plugin.Dependency
 import com.velocitypowered.api.plugin.Plugin
 import com.velocitypowered.api.plugin.annotation.DataDirectory
-import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.ProxyServer
 import net.luckperms.api.LuckPermsProvider
 import org.openredstone.chattore.feature.*
@@ -91,11 +87,8 @@ class ChattORE @Inject constructor(
     ): Boolean {
         val exception = throwable as? ChattoreException ?: return false
         val message = exception.message ?: "Something went wrong!"
-        if (sender is Player) {
-            sender.sendSimpleS("<b><red>Oh NO ! </red></b><gray>:</gray> <red><message></red>", message)
-        } else {
-            sender.sendMessage("Error: $message")
-        }
+        // cast ok because we're running on Velocity
+        (sender as VelocityCommandIssuer).issuer.sendInfoMM("<red><message></red>", "message" toS message)
         return true
     }
     // TODO reloading functionality
