@@ -70,8 +70,8 @@ fun PluginScope.createDiscordFeature(
                 }
             }
             val discordMap = spawnServerBots(proxy, logger, config)
-            val serverChannels = discordMap.mapValues { (_, api) -> getGameChat(api, config.channelId) }
-            val mainBotChannel = getGameChat(discordNetwork, config.channelId)
+            val serverChannels = discordMap.mapValues { (_, api) -> getGameChat(api, config.gameChatChannelId) }
+            val mainBotChannel = getGameChat(discordNetwork, config.gameChatChannelId)
             val listener = DiscordListener(logger, messenger, proxy, emojis, config)
             @OptIn(KordPreview::class)
             mainBotChannel.live().onMessageCreate(block = listener::onMessageCreate)
