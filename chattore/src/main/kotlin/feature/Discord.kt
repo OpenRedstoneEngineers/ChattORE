@@ -90,8 +90,8 @@ fun PluginScope.createDiscordFeature(
     }
 }
 
-private suspend fun getGameChat(api: Kord, chatid: Long): TextChannel = api.getChannelOf(Snowflake(chatid))
-    ?: throw IllegalArgumentException("Cannot find game-chat channel")
+private suspend fun getGameChat(api: Kord, channelId: Long): TextChannel = api.getChannelOf(Snowflake(channelId))
+    ?: throw IllegalArgumentException("Cannot find game-chat channel") // Todo: We might want to use this function for other channels too, so the error might need to look different.
 
 private class DiscordBroadcastListener(
     private val config: DiscordConfig,
@@ -144,11 +144,7 @@ private class DiscordListener(
 
         var displayName = sender.effectiveName
         if (sender.isBot) {
-            // Bot other than Patrick.
             if (sender.id != Snowflake(config.patrickId)) return
-
-            // Bot is patrick. We add a '[Bot]' prefix.
-            // See https://github.com/OpenRedstoneEngineers/ChattORE/issues/26.
             displayName = "[Bot] " + displayName
         }
 
