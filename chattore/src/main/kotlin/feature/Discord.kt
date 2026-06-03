@@ -91,7 +91,7 @@ fun PluginScope.createDiscordFeature(
 }
 
 private suspend fun getGameChat(api: Kord, channelId: Long): TextChannel = api.getChannelOf(Snowflake(channelId))
-    ?: throw IllegalArgumentException("Cannot find game-chat channel") // Todo: We might want to use this function for other channels too, so the error might need to look different.
+    ?: throw IllegalArgumentException("Cannot find game-chat channel (with id $channelId)")
 
 private class DiscordBroadcastListener(
     private val config: DiscordConfig,
