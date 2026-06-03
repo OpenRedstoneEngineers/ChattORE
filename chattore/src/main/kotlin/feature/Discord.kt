@@ -22,7 +22,7 @@ fun String.discordEscape() = this.replace("""_""", "\\_")
 data class DiscordConfig(
     val enable: Boolean = false,
     val networkToken: String = "nouNetwork",
-    val channelId: Long = 1234L, // game-chat
+    val gameChatChannelId: Long = 1234L,
     val patrickId: Long = 1234L,
     val playingMessage: String = "on the ORE Network",
     val discordFormat: String = "`%prefix%` **%sender%**: %message%",
