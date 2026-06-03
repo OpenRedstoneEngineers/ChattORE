@@ -22,8 +22,8 @@ fun String.discordEscape() = this.replace("""_""", "\\_")
 data class DiscordConfig(
     val enable: Boolean = false,
     val networkToken: String = "nouNetwork",
-    val channelId: Long = 1234L,
-    val chadId: Long = 1234L,
+    val gameChatChannelId: Long = 1234L,
+    val patrickId: Long = 1234L,
     val playingMessage: String = "on the ORE Network",
     val discordFormat: String = "`%prefix%` **%sender%**: %message%",
     val serverTokens: Map<String, String> = mapOf(
@@ -70,8 +70,8 @@ fun PluginScope.createDiscordFeature(
                 }
             }
             val discordMap = spawnServerBots(proxy, logger, config)
-            val serverChannels = discordMap.mapValues { (_, api) -> getGameChat(api, config.channelId) }
-            val mainBotChannel = getGameChat(discordNetwork, config.channelId)
+            val serverChannels = discordMap.mapValues { (_, api) -> getGameChat(api, config.gameChatChannelId) }
+            val mainBotChannel = getGameChat(discordNetwork, config.gameChatChannelId)
             val listener = DiscordListener(logger, messenger, proxy, emojis, config)
             @OptIn(KordPreview::class)
             mainBotChannel.live().onMessageCreate(block = listener::onMessageCreate)
@@ -90,8 +90,8 @@ fun PluginScope.createDiscordFeature(
     }
 }
 
-private suspend fun getGameChat(api: Kord, id: Long): TextChannel = api.getChannelOf(Snowflake(id))
-    ?: throw IllegalArgumentException("Cannot find game-chat channel")
+private suspend fun getGameChat(api: Kord, channelId: Long): TextChannel = api.getChannelOf(Snowflake(channelId))
+    ?: throw IllegalArgumentException("Cannot find game-chat channel (with id $channelId)")
 
 private class DiscordBroadcastListener(
     private val config: DiscordConfig,
@@ -141,10 +141,15 @@ private class DiscordListener(
     fun onMessageCreate(event: MessageCreateEvent) {
         // guaranteed to not happen because events are filtered beforehand
         val sender = event.member ?: throw IllegalStateException("onMessageCreate: event.member is null")
-        if (sender.isBot && sender.id != Snowflake(config.chadId)) return
+
+        var displayName = sender.effectiveName
+        if (sender.isBot) {
+            if (sender.id != Snowflake(config.patrickId)) return
+            displayName = "[Bot] " + displayName
+        }
+
         val attachments = event.message.attachments.joinToString(" ", " ") { it.url }
         val toSend = replaceEmojis(event.message.content) + attachments
-        val displayName = sender.effectiveName
         logger.info("[Discord] $displayName (${sender.id}): $toSend")
         val transformedMessage = toSend.replace(urlMarkdownRegex) { matchResult ->
             val text = matchResult.groupValues[1].trim()
@@ -170,10 +175,10 @@ private suspend fun CoroutineScope.spawnServerBots(
     if (availableServers != configServers) {
         logger.warn(
             """
-                    Supplied server keys in Discord configuration section does not match available servers:
-                    Available servers: ${availableServers.joinToString()}
-                    Configured servers: ${configServers.joinToString()}
-                """.trimIndent()
+            Supplied server keys in Discord configuration section does not match available servers:
+            Available servers: ${availableServers.joinToString()}
+            Configured servers: ${configServers.joinToString()}
+            """.trimIndent()
         )
     }
     return serverTokens.mapValues { (_, token) ->
