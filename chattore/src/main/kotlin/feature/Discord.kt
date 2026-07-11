@@ -72,7 +72,7 @@ fun PluginScope.createDiscordFeature(
             val discordMap = spawnServerBots(proxy, logger, config)
             val serverChannels = discordMap.mapValues { (_, api) -> getGameChat(api, config.channelId) }
             val mainBotChannel = getGameChat(discordNetwork, config.channelId)
-            val listener = DiscordListener(logger, messenger, proxy, emojis, config)
+            val listener = DiscordListener(logger, messenger, emojis, config)
             @OptIn(KordPreview::class)
             mainBotChannel.live().onMessageCreate(block = listener::onMessageCreate)
             registerListeners(DiscordBroadcastListener(config, serverChannels, mainBotChannel, this))
@@ -124,7 +124,6 @@ private class DiscordBroadcastListener(
 private class DiscordListener(
     private val logger: Logger,
     private val messenger: Messenger,
-    private val proxy: ProxyServer,
     private val emojis: Emojis,
     private val config: DiscordConfig,
 ) {
@@ -151,7 +150,7 @@ private class DiscordListener(
             val url = matchResult.groupValues[2].trim()
             "$text: $url"
         }.replace("""\s+""".toRegex(), " ")
-        proxy.all.sendRichMessage(
+        messenger.globalChat.sendRichMessage(
             config.ingameFormat,
             "sender" toS displayName,
             "message" toC messenger.prepareChatMessage(transformedMessage, null),

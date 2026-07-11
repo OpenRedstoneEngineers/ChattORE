@@ -1,5 +1,5 @@
 [versions]
-kotlin = "2.1.21"
+kotlin = "2.4.0"
 kotlinx-serialization = "1.8.1"
 exposed = "0.58.0"
 jackson = "2.19.0"
@@ -23,7 +23,7 @@ jackson-kotlin = { group = "com.fasterxml.jackson.module", name = "jackson-modul
 jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind", version.ref = "jackson" }
 
 [plugins]
-shadow = { id = "com.gradleup.shadow", version = "8.3.6" }
+shadow = { id = "com.gradleup.shadow", version = "9.4.2" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

@@ -99,8 +99,17 @@ private val removeUnnecessaryStuffAndReorganize: Migration = {
     }
 }
 
-private val migrations = arrayOf<Migration>(
+private val bubbleIntroduction: Migration = {
+    // format.global -> format.chatMessage
+    getObject("format").apply {
+        replace("chatMessage", get("global"))
+        remove("global")
+    }
+}
+
+private val migrations = arrayOf(
     removeUnnecessaryStuffAndReorganize,
+    bubbleIntroduction,
 )
 
 private val currentConfigVersion: ConfigVersion = migrations.size

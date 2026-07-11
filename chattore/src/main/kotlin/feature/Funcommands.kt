@@ -16,9 +16,9 @@ import net.kyori.adventure.text.event.HoverEvent.showText
 import org.openredstone.chattore.*
 import org.slf4j.Logger
 
-fun PluginScope.createFunCommandsFeature() {
+fun PluginScope.createFunCommandsFeature(chatConfirmations: ChatConfirmations) {
     val commands = Json.decodeFromString<List<FunCommand>>(loadDataResourceAsString("commands.json"))
-    createFunCommands(logger, proxy, proxy.commandManager, commands)
+    createFunCommands(logger, proxy, chatConfirmations, proxy.commandManager, commands)
     registerCommands(FunCommandsCommand(commands))
 }
 
@@ -92,6 +92,7 @@ private data class FunCommand(
 private fun createFunCommands(
     logger: Logger,
     proxy: ProxyServer,
+    chatConfirmations: ChatConfirmations,
     commandManager: CommandManager,
     commands: List<FunCommand>,
 ) {
@@ -117,17 +118,20 @@ private fun createFunCommands(
             return@SimpleCommand
         }
 
+        val allArgs = args.joinToString(" ")
         val replacements = arrayOf(
             "name" toS source.username,
-            "arg-all" toS args.joinToString(" "),
+            "arg-all" toS allArgs,
             "arg-1" toS (args.getOrNull(1) ?: "<missing>"),
-            "arg-2" toS (args.getOrNull(2) ?: "<missing>")
+            "arg-2" toS (args.getOrNull(2) ?: "<missing>"),
         )
 
-        cmd.globalChat?.let { proxy.all.sendRichMessage(it, *replacements) }
-        cmd.localChat?.let { source.sendRichMessage(it, *replacements) }
-        cmd.othersChat?.let { proxy.allBut(source).sendRichMessage(it, *replacements) }
-        cmd.run?.let { executeAction(it, source) }
+        chatConfirmations.submit(source, "/${invocation.alias()} $allArgs") { source ->
+            cmd.globalChat?.let { proxy.all.sendRichMessage(it, *replacements) }
+            cmd.localChat?.let { source.sendRichMessage(it, *replacements) }
+            cmd.othersChat?.let { proxy.allBut(source).sendRichMessage(it, *replacements) }
+            cmd.run?.let { executeAction(it, source) }
+        }
     }
 
     commands.forEach { commandConfig ->

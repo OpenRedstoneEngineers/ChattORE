@@ -6,3 +6,9 @@ plugins {
     alias(libs.plugins.pluginYml) apply false
     alias(libs.plugins.buildconfig) apply false
 }
+
+allprojects {
+    tasks.withType<Test> {
+        failOnNoDiscoveredTests = false
+    }
+}

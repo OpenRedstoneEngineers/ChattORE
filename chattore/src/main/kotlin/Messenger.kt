@@ -7,24 +7,30 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.space
 import net.kyori.adventure.text.TextReplacementConfig
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.luckperms.api.LuckPerms
-import org.openredstone.chattore.feature.DiscordBroadcastEvent
-import org.openredstone.chattore.feature.Emojis
-import org.openredstone.chattore.feature.NickPreset
+import org.openredstone.chattore.feature.*
+import org.slf4j.Logger
 import java.net.URI
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.jvm.optionals.getOrNull
 
 fun PluginScope.createMessenger(
     emojis: Emojis,
     database: Storage,
     luckPerms: LuckPerms,
-    chatBroadcastFormat: String,
+    formatConfig: FormatConfig,
+    wiretap: Wiretap,
+    userCache: UserCache,
 ): Messenger {
     val fileTypeMap = Json.parseToJsonElement(loadResourceAsString("filetypes.json"))
         .jsonObject.mapValues { (_, value) -> value.jsonArray.map { it.jsonPrimitive.content } }
         .onEach { (key, values) -> logger.info("Loaded ${values.size} of type $key") }
-    return Messenger(emojis, proxy, database, luckPerms, chatBroadcastFormat, fileTypeMap)
+    return Messenger(emojis, proxy, database, luckPerms, formatConfig, fileTypeMap, wiretap, logger, userCache)
 }
 
 class Messenger(
@@ -32,8 +38,11 @@ class Messenger(
     private val proxy: ProxyServer,
     private val database: Storage,
     private val luckPerms: LuckPerms,
-    private val chatBroadcastFormat: String,
+    private val formatConfig: FormatConfig,
     private val fileTypeMap: Map<String, List<String>>,
+    private val wiretap: Wiretap,
+    private val logger: Logger,
+    private val userCache: UserCache,
 ) {
     private val urlRegex = """<?((http|https)://([\w_-]+(?:\.[\w_-]+)+)([^\s'<>]+)?)>?""".toRegex()
 
@@ -44,6 +53,7 @@ class Messenger(
         formatReplacement("~~", "st"),
         buildEmojiReplacement(emojis),
     )
+    val excludedFromGlobalChat: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
 
     private fun formatReplacement(key: String, tag: String): TextReplacementConfig =
         TextReplacementConfig.builder()
@@ -67,34 +77,58 @@ class Messenger(
             }
             .build()
 
-    fun broadcastChatMessage(originServer: String, player: Player, message: String) {
-        val userId = player.uniqueId
-        val userManager = luckPerms.userManager
-        val luckUser = userManager.getUser(userId) ?: return
-        val name = database.getNickname(userId) ?: NickPreset(player.username)
-        val sender =
-            "<hover:show_text:'${player.username} | <i>Click for more</i>'><click:run_command:'/playerprofile info ${player.username}'><message></click></hover>"
-                .renderSimpleC(name.render(player.username))
-
+    private fun formatPrefix(player: Player): Component {
+        val luckUser = luckPerms.userManager.getUser(player.uniqueId)!! // online users guaranteed to be loaded
         val prefix = luckUser.cachedData.metaData.prefix
             ?: luckUser.primaryGroup.replaceFirstChar(Char::uppercaseChar)
+        return prefix.legacyDeserialize()
+    }
 
-        val compoPrefix = prefix.legacyDeserialize()
-        proxy.all.sendRichMessage(
-            chatBroadcastFormat,
-            "message" toC prepareChatMessage(message, player),
-            "sender" toC sender,
-            "prefix" toC compoPrefix,
-        )
+    private fun formatSender(player: Player): Component {
+        val name = database.getNickname(player.uniqueId) ?: NickPreset(player.username)
+        return "<hover:show_text:'${player.username} | <i>Click for more</i>'><click:run_command:'/playerprofile info ${player.username}'><message></click></hover>"
+            .renderSimpleC(name.render(player.username))
+    }
+
+    fun formatChatMessage(
+        message: String,
+        player: Player,
+        sender: Component = formatSender(player),
+        prefix: Component = formatPrefix(player),
+    ) = formatConfig.chatMessage.render(
+        "message" toC prepareChatMessage(message, player),
+        "sender" toC sender,
+        "prefix" toC prefix,
+    )
+
+    val globalChat = proxy.all { it.uniqueId !in excludedFromGlobalChat }
+
+    fun broadcastChatMessage(player: Player, message: String) {
+        logger.info("${player.username} (${player.uniqueId}): $message")
+        val originServer = player.currentServer.getOrNull()?.serverInfo?.name ?: "VOID"
+        val compoPrefix = formatPrefix(player)
+        globalChat.sendMessage(formatChatMessage(message, player, prefix = compoPrefix))
 
         val plainPrefix = PlainTextComponentSerializer.plainText().serialize(compoPrefix)
         val discordBroadcast = DiscordBroadcastEvent(
             plainPrefix,
             player.username,
             originServer,
-            message
+            message,
         )
         proxy.eventManager.fireAndForget(discordBroadcast)
+    }
+
+    fun broadcastBubbleMessage(player: Player, message: String, bubble: Bubble) {
+        logger.info("[Bubble] ${player.username} (${player.uniqueId}): $message")
+        val formattedMessage = formatChatMessage(message, player)
+        val bubbleInfo = Placeholder.styling("bubble_info", bubble.formatInfo(userCache))
+        val renderedMessage =
+            Component.textOfChildren(formatConfig.bubblePrefix.render(bubbleInfo), space(), formattedMessage)
+        bubble.players.forEach { uuid ->
+            proxy.playerOrNull(uuid)?.sendMessage(renderedMessage)
+        }
+        wiretap(renderedMessage)
     }
 
     fun prepareChatMessage(

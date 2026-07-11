@@ -16,8 +16,9 @@ fun PluginScope.createProfileFeature(
     database: Storage,
     luckPerm: LuckPerms,
     userCache: UserCache,
+    chatConfirmations: ChatConfirmations,
 ) {
-    registerCommands(Profile(proxy, database, luckPerm, userCache))
+    registerCommands(Profile(proxy, database, luckPerm, userCache, chatConfirmations))
 }
 
 @CommandAlias("profile|playerprofile")
@@ -27,6 +28,7 @@ private class Profile(
     private val database: Storage,
     private val luckPerms: LuckPerms,
     private val userCache: UserCache,
+    private val chatConfirmations: ChatConfirmations,
 ) : BaseCommand() {
 
     @Subcommand("info")
@@ -41,8 +43,10 @@ private class Profile(
     @Subcommand("about")
     @CommandPermission("chattore.profile.about")
     fun about(player: Player, about: String) {
-        database.setAbout(player.uniqueId, about)
-        player.sendInfo("Set your about to '$about'.")
+        chatConfirmations.submit(player, "/$execCommandLabel about $about") { player ->
+            database.setAbout(player.uniqueId, about)
+            player.sendInfo("Set your about to '$about'.")
+        }
     }
 
     @Subcommand("setabout")

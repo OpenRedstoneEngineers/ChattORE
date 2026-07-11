@@ -57,12 +57,14 @@ fun PluginScope.createNicknameFeature(
                 listOf()
             })
         }
+        commandCompletions.registerCompletion(COMPLETION_SENDER_USERNAME) { listOfNotNull(it.player?.username) }
     }
     registerCommands(Nickname(database, proxy, userCache, config))
     registerListeners(NicknameListener(database, userCache, config))
 }
 
 private const val COMPLETION_COLORS = "colors"
+private const val COMPLETION_SENDER_USERNAME = "senderUsername"
 
 val hexColorMap = mapOf(
     "0" to Pair("#000000", "black"),
@@ -146,7 +148,7 @@ private class Nickname(
 
     @Subcommand("presets")
     @CommandPermission("chattore.nick.preset")
-    @CommandCompletion("@username")
+    @CommandCompletion("@${COMPLETION_SENDER_USERNAME}")
     fun presets(player: Player, @Optional shownText: String?) {
         val renderedPresets = ArrayList<Component>()
         for ((presetName, preset) in config.presets) {

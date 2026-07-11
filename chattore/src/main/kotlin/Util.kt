@@ -62,10 +62,12 @@ fun Audience.sendSimpleC(format: String, message: Component) = sendMessage(forma
 fun Audience.sendSimpleS(format: String, message: String) = sendSimpleC(format, message.toComponent())
 fun Audience.sendSimpleMM(format: String, message: String) = sendSimpleC(format, message.render())
 
-private const val infoFormat = "<gold>[</gold><red>ChattORE</red><gold>]</gold> <red><message></red>"
-fun Audience.sendInfo(message: String) = sendSimpleC(infoFormat, message.toComponent())
-fun Audience.sendInfoMM(message: String, vararg resolvers: TagResolver) =
-    sendSimpleC(infoFormat, message.render(*resolvers))
+private const val infoFormat = "<gold>[</gold><red>ChattORE</red><gold>]</gold> <gold><message></gold>"
+fun Audience.sendInfoC(message: Component) = sendSimpleC(infoFormat, message)
+fun Audience.sendInfo(message: String) = sendInfoC(message.toComponent())
+fun Audience.sendInfoMM(message: String, vararg resolvers: TagResolver) = sendInfoC(message.render(*resolvers))
+
+fun Audience.sendError(message: String) = sendInfoMM("<red><message></red>", "message" toS message)
 
 /** Mirrors Player.sendRichMessage **/
 fun Audience.sendRichMessage(message: String, vararg resolvers: TagResolver) = sendMessage(message.render(*resolvers))
