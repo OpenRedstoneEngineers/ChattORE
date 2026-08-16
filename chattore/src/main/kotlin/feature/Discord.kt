@@ -31,7 +31,7 @@ data class DiscordConfig(
         "serverTwo" to "token2",
         "serverThree" to "token3"
     ),
-    val userRewrites: Map<ULong, String> = mapOf(
+    val senderSpecificFormats: Map<ULong, String> = mapOf(
         1234567890UL to "<red>SomeUser <gray>»<reset> <message>"
     ),
     val ingameFormat: String = "<dark_aqua>Discord</dark_aqua> <gray>|</gray> <dark_purple><sender></dark_purple><gray>:</gray> <message>",
@@ -154,7 +154,7 @@ private class DiscordListener(
             "$text: $url"
         }.replace("""\s+""".toRegex(), " ")
         messenger.globalChat.sendRichMessage(
-            config.userRewrites[sender.id.value] ?: config.ingameFormat,
+            config.senderSpecificFormats[sender.id.value] ?: config.ingameFormat,
             "sender" toS displayName,
             "message" toC messenger.prepareChatMessage(transformedMessage, null),
         )
