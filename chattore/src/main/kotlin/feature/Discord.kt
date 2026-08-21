@@ -6,6 +6,7 @@ import com.velocitypowered.api.proxy.ProxyServer
 import dev.kord.common.annotation.KordPreview
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
+import dev.kord.core.entity.Message
 import dev.kord.core.entity.channel.TextChannel
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.core.live.channel.live
@@ -34,7 +35,7 @@ data class DiscordConfig(
     val senderSpecificFormats: Map<ULong, String> = mapOf(
         1234567890UL to "<red>SomeUser <gray>»<reset> <message>"
     ),
-    val ingameFormat: String = "<dark_aqua>Discord</dark_aqua> <gray>|</gray> <dark_purple><sender></dark_purple><gray>:</gray> <message>",
+    val ingameFormat: String = "<dark_aqua>Discord</dark_aqua> <gray>|</gray> <dark_purple><sender></dark_purple><gray><reply>:</gray> <message>",
 )
 
 // TO Discord
@@ -75,7 +76,8 @@ fun PluginScope.createDiscordFeature(
             val discordMap = spawnServerBots(proxy, logger, config)
             val serverChannels = discordMap.mapValues { (_, api) -> getGameChat(api, config.channelId) }
             val mainBotChannel = getGameChat(discordNetwork, config.channelId)
-            val listener = DiscordListener(logger, messenger, emojis, config)
+            val serverBotIds = discordMap.values.map { it.selfId }.toSet()
+            val listener = DiscordListener(logger, messenger, emojis, config, serverBotIds)
             @OptIn(KordPreview::class)
             mainBotChannel.live().onMessageCreate(block = listener::onMessageCreate)
             registerListeners(DiscordBroadcastListener(config, serverChannels, mainBotChannel, this))
@@ -129,15 +131,26 @@ private class DiscordListener(
     private val messenger: Messenger,
     private val emojis: Emojis,
     private val config: DiscordConfig,
+    private val serverBotIds: Set<Snowflake>,
 ) {
     private val emojiPattern = emojis.emojiToName.keys.joinToString("|", "(", ")") { Regex.escape(it) }
     private val emojiRegex = Regex(emojiPattern)
     private val urlMarkdownRegex = """\[([^]]*)]\(\s?(\S+)\s?\)""".toRegex()
+    private val relayedMessageRegex = """^`.*?`\s*\*\*(.+?)\*\*:\s?(.*)$""".toRegex(RegexOption.DOT_MATCHES_ALL)
 
     private fun replaceEmojis(input: String) = emojiRegex.replace(input) { matchResult ->
         val emoji = matchResult.value
         val emojiName = emojis.emojiToName[emoji]
         if (emojiName != null) ":$emojiName:" else emoji
+    }
+
+    private fun extractReplyInfo(referenced: Message): Pair<String, String>? {
+        val author = referenced.author
+        if (author != null && author.id in serverBotIds) {
+            val match = relayedMessageRegex.find(referenced.content) ?: return null
+            return match.groupValues[1] to match.groupValues[2]
+        }
+        return author?.username?.let { it to referenced.content }
     }
 
     fun onMessageCreate(event: MessageCreateEvent) {
@@ -153,10 +166,20 @@ private class DiscordListener(
             val url = matchResult.groupValues[2].trim()
             "$text: $url"
         }.replace("""\s+""".toRegex(), " ")
+
+        val referenced = event.message.referencedMessage
+        val replyInfo = referenced?.let { extractReplyInfo(it) }
+        val replyAuthor = replyInfo?.first
+        val replyContent = replyInfo?.second?.let { replaceEmojis(it) }
+
+        val messageID = ChatReply.nextMessageId()
+        ChatReply.saveMessage(messageID, event.message.author?.username ?: "unknown", transformedMessage)
+
         messenger.globalChat.sendRichMessage(
             config.senderSpecificFormats[sender.id.value] ?: config.ingameFormat,
             "sender" toS displayName,
-            "message" toC messenger.prepareChatMessage(transformedMessage, null),
+            "message" toC messenger.prepareChatMessage(transformedMessage, null, messageID),
+            "reply" toC messenger.formatReply(replyAuthor, replyContent),
         )
     }
 }
