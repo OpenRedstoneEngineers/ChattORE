@@ -4,7 +4,7 @@
 package org.openredstone.chattore
 
 fun weighted(vararg colors: Pair<String, Int>): Array<String> =
-        colors.flatMap { (value, weight) -> List(weight) { value } }.toTypedArray()
+    colors.flatMap { (value, weight) -> List(weight) { value } }.toTypedArray()
 
 val prideColors = mapOf(
     "rainbow" to arrayOf(
@@ -331,14 +331,14 @@ val prideColors = mapOf(
     ),
 
     "boyflux2" to weighted(
-        Pair("#E48AE4",1),
-        Pair("#9A81B4",1),
-        Pair("#55BFAB",1),
-        Pair("#FFFFFF",1),
-        Pair("#A8A8A8",1),
-        Pair("#81D5EF",5),
-        Pair("#69ABE5",5),
-        Pair("#5276D4",5),
+        Pair("#E48AE4", 1),
+        Pair("#9A81B4", 1),
+        Pair("#55BFAB", 1),
+        Pair("#FFFFFF", 1),
+        Pair("#A8A8A8", 1),
+        Pair("#81D5EF", 5),
+        Pair("#69ABE5", 5),
+        Pair("#5276D4", 5),
     ),
 
     "girlflux" to arrayOf(
@@ -395,13 +395,13 @@ val prideColors = mapOf(
     ),
 
     "gendernonconforming1" to weighted(
-        Pair("#50284D",4),
-        Pair("#96467B",1),
-        Pair("#5C96F7",1),
-        Pair("#FFE6F7",1),
-        Pair("#5C96F7",1),
-        Pair("#96467B",1),
-        Pair("#50284D",4),
+        Pair("#50284D", 4),
+        Pair("#96467B", 1),
+        Pair("#5C96F7", 1),
+        Pair("#FFE6F7", 1),
+        Pair("#5C96F7", 1),
+        Pair("#96467B", 1),
+        Pair("#50284D", 4),
     ),
 
     "gendernonconforming2" to arrayOf(
@@ -520,5 +520,5 @@ val prideColors = mapOf(
 )
 
 val pridePresets = prideColors.mapValues { (_, colors) ->
-        "<gradient:${colors.joinToString(':'.toString())}><username></gradient>"
-    }.toSortedMap()
+    "<gradient:${colors.joinToString(':'.toString())}><username></gradient>"
+}.toSortedMap()

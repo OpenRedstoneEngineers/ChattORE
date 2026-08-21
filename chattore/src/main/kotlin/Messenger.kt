@@ -9,6 +9,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.Component.space
 import net.kyori.adventure.text.TextReplacementConfig
+import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.luckperms.api.LuckPerms
@@ -17,6 +18,7 @@ import org.slf4j.Logger
 import java.net.URI
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.jvm.optionals.getOrNull
 
 fun PluginScope.createMessenger(
@@ -90,24 +92,54 @@ class Messenger(
             .renderSimpleC(name.render(player.username))
     }
 
+    fun formatReply(replyAuthor: String?, replyContent: String?): Component {
+        if (replyAuthor == null || replyContent == null) return "".render()
+        val originalMessage = replyContent.replace("'", "\\'")
+        return " <hover:show_text:'<aqua>$replyAuthor</aqua><gray>:</gray> $originalMessage'><gray>↪ $replyAuthor</gray></hover>"
+            .render()
+    }
+
     fun formatChatMessage(
         message: String,
         player: Player,
         sender: Component = formatSender(player),
         prefix: Component = formatPrefix(player),
+        messageID: Int? = null,
+        replyAuthor: String? = null,
+        replyContent: String? = null,
+        reply: Component = formatReply(replyAuthor, replyContent)
     ) = formatConfig.chatMessage.render(
-        "message" toC prepareChatMessage(message, player),
+        "message" toC prepareChatMessage(message, player, messageID),
         "sender" toC sender,
         "prefix" toC prefix,
+        "reply" toC reply,
     )
 
     val globalChat = proxy.all { it.uniqueId !in excludedFromGlobalChat }
 
-    fun broadcastChatMessage(player: Player, message: String) {
+    fun broadcastChatMessage(
+        player: Player,
+        message: String,
+        replyAuthor: String? = null,
+        replyContent: String? = null
+    ) {
         logger.info("${player.username} (${player.uniqueId}): $message")
         val originServer = player.currentServer.getOrNull()?.serverInfo?.name ?: "VOID"
         val compoPrefix = formatPrefix(player)
-        globalChat.sendMessage(formatChatMessage(message, player, prefix = compoPrefix))
+        val messageID = ChatReply.nextMessageId()
+
+        ChatReply.saveMessage(messageID, player.username, message)
+
+        globalChat.sendMessage(
+            formatChatMessage(
+                message,
+                player,
+                prefix = compoPrefix,
+                messageID = messageID,
+                replyAuthor = replyAuthor,
+                replyContent = replyContent
+            )
+        )
 
         val plainPrefix = PlainTextComponentSerializer.plainText().serialize(compoPrefix)
         val discordBroadcast = DiscordBroadcastEvent(
@@ -134,6 +166,7 @@ class Messenger(
     fun prepareChatMessage(
         message: String,
         player: Player?,
+        messageId: Int? = null,
     ): Component {
         val canObfuscate = player?.hasPermission("chattore.chat.obfuscate") ?: false
         val parts = urlRegex.split(message)
@@ -146,7 +179,12 @@ class Messenger(
                 builder.append(formatLink(nextMatch.groupValues[1]))
             }
         }
-        return builder.build().performReplacements(chatReplacements)
+        val content = builder.build().performReplacements(chatReplacements)
+        return if (messageId != null) {
+            content.clickEvent(ClickEvent.suggestCommand("/chatreply $messageId "))
+        } else {
+            content
+        }
     }
 
     private fun formatLink(str: String): Component {

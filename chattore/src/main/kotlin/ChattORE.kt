@@ -54,6 +54,7 @@ class ChattORE @Inject constructor(
             val bubbleManager = createBubbleFeature(messenger, database, chatConfirmations, config.format, userCache)
             createAliasFeature()
             createChatFeature(messenger, chatConfirmations, bubbleManager)
+            createChatReplyFeature(messenger)
             createChattoreFeature()
             createDiscordFeature(messenger, emojis, config.discord)
             createFunCommandsFeature(chatConfirmations)
