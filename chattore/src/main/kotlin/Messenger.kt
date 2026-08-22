@@ -95,7 +95,7 @@ class Messenger(
     fun formatReply(reply: StoredMessage?): Component {
         if (reply == null) return Component.empty()
         val originalMessage = reply.content.replace("'", "\\'")
-        return " <hover:show_text:'<aqua>${reply.author}</aqua><gray>:</gray> $originalMessage'>↪ ${reply.author}</hover>"
+        return " <hover:show_text:'<aqua>${reply.author}</aqua><gray>:</gray> $originalMessage'><gray>↪ ${reply.author}</gray></hover>"
             .render()
     }
 
