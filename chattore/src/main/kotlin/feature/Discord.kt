@@ -77,8 +77,7 @@ fun PluginScope.createDiscordFeature(
             val discordMap = spawnServerBots(proxy, logger, config)
             val serverChannels = discordMap.mapValues { (_, api) -> getGameChat(api, config.channelId) }
             val mainBotChannel = getGameChat(discordNetwork, config.channelId)
-            val serverBotIds = discordMap.values.map { it.selfId }.toSet()
-            val listener = DiscordListener(logger, messenger, emojis, config, serverBotIds, chatReply)
+            val listener = DiscordListener(logger, messenger, emojis, config, chatReply)
             @OptIn(KordPreview::class)
             mainBotChannel.live().onMessageCreate(block = listener::onMessageCreate)
             registerListeners(DiscordBroadcastListener(config, serverChannels, mainBotChannel, this))
@@ -132,27 +131,16 @@ private class DiscordListener(
     private val messenger: Messenger,
     private val emojis: Emojis,
     private val config: DiscordConfig,
-    private val serverBotIds: Set<Snowflake>,
     private val chatReply: ChatReply,
 ) {
     private val emojiPattern = emojis.emojiToName.keys.joinToString("|", "(", ")") { Regex.escape(it) }
     private val emojiRegex = Regex(emojiPattern)
     private val urlMarkdownRegex = """\[([^]]*)]\(\s?(\S+)\s?\)""".toRegex()
-    private val relayedMessageRegex = """^`.*?`\s*\*\*(.+?)\*\*:\s?(.*)$""".toRegex(RegexOption.DOT_MATCHES_ALL)
 
     private fun replaceEmojis(input: String) = emojiRegex.replace(input) { matchResult ->
         val emoji = matchResult.value
         val emojiName = emojis.emojiToName[emoji]
         if (emojiName != null) ":$emojiName:" else emoji
-    }
-
-    private fun extractReplyInfo(referenced: Message): Pair<String, String>? {
-        val author = referenced.author
-        if (author != null && author.id in serverBotIds) {
-            val match = relayedMessageRegex.find(referenced.content) ?: return null
-            return match.groupValues[1] to match.groupValues[2]
-        }
-        return author?.username?.let { it to referenced.content }
     }
 
     fun onMessageCreate(event: MessageCreateEvent) {
@@ -172,8 +160,7 @@ private class DiscordListener(
         val referencedId = event.message.data.messageReference.value?.id?.value
         val reply = referencedId?.let { chatReply.getMessageByDiscordSnowflake(it.value.toLong()) }
 
-        val messageId = chatReply.saveMessage(sender.username, transformedMessage)
-        chatReply.linkDiscordMessage(event.message.id.value.toLong(), messageId)
+        val messageId = chatReply.saveMessage(displayName, transformedMessage, event.message.id.value.toLong())
 
         messenger.globalChat.sendRichMessage(
             config.senderSpecificFormats[sender.id.value] ?: config.ingameFormat,

@@ -19,61 +19,38 @@ data class StoredMessage(
     val content: String,
 )
 
-class ChatReply(
-    private val confirmations: ChatConfirmations,
-) {
+class ChatReply() {
     private val maxMessages = 100
     private val messageIdCounter = AtomicInteger(0)
 
-    private val messages: MutableMap<Int, StoredMessage> = Collections.synchronizedMap(
-        object : LinkedHashMap<Int, StoredMessage>(maxMessages) {
-            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Int, StoredMessage>?): Boolean =
+    private fun <K, V> createMaps(): MutableMap<K, V> = Collections.synchronizedMap(
+        object : LinkedHashMap<K, V>(maxMessages) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<K, V>?): Boolean =
                 size > maxMessages
         }
     )
 
-    private val discordMessageIds: MutableMap<Long, Int> = ConcurrentHashMap()
+    private val messages = createMaps<Int, StoredMessage>()
+    private val discordMessageIds = createMaps<Long, Int>()
 
-    fun saveMessage(author: String, content: String): Int {
+    fun saveMessage(author: String, content: String, discordSnowflake: Long? = null): Int {
         val messageId = messageIdCounter.incrementAndGet()
+        if (discordSnowflake != null) discordMessageIds[discordSnowflake] = messageId
         messages[messageId] = StoredMessage(author, content)
         return messageId
     }
 
     fun getMessage(id: Int): StoredMessage? = messages[id]
 
-    fun linkDiscordMessage(discordSnowflake: Long, messageId: Int) {
-        discordMessageIds[discordSnowflake] = messageId
-    }
-
     fun getMessageByDiscordSnowflake(discordSnowflake: Long): StoredMessage? =
         discordMessageIds[discordSnowflake]?.let { getMessage(it) }
-
-    fun reply(
-        sender: Player,
-        messenger: Messenger,
-        id: Int,
-        message: String,
-    ) {
-        val original = getMessage(id) ?: throw ChattoreException("That message is too old!")
-
-        confirmations.submit(sender, message) {
-            val newMessageId = saveMessage(sender.username, message)
-            messenger.broadcastChatMessage(
-                sender,
-                message,
-                newMessageId,
-                reply = original,
-            )
-        }
-    }
 }
 
 fun PluginScope.createChatReplyFeature(
     messenger: Messenger,
     confirmations: ChatConfirmations,
 ): ChatReply {
-    val chatReply = ChatReply(confirmations)
+    val chatReply = ChatReply()
 
     @CommandAlias("chatreply")
     @CommandPermission("chattore.chat")
@@ -85,12 +62,17 @@ fun PluginScope.createChatReplyFeature(
             id: Int,
             message: String,
         ) {
-            chatReply.reply(
-                sender = sender,
-                messenger = messenger,
-                id = id,
-                message = message,
-            )
+            val original = chatReply.getMessage(id) ?: throw ChattoreException("That message is too old!")
+
+            confirmations.submit(sender, message) {
+                val newMessageId = chatReply.saveMessage(sender.username, message)
+                messenger.broadcastChatMessage(
+                    sender,
+                    message,
+                    newMessageId,
+                    reply = original,
+                )
+            }
         }
     }
 
