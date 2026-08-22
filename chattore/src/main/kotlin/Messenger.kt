@@ -92,10 +92,10 @@ class Messenger(
             .renderSimpleC(name.render(player.username))
     }
 
-    fun formatReply(replyAuthor: String?, replyContent: String?): Component {
-        if (replyAuthor == null || replyContent == null) return "".render()
-        val originalMessage = replyContent.replace("'", "\\'")
-        return " <hover:show_text:'<aqua>$replyAuthor</aqua><gray>:</gray> $originalMessage'><gray>↪ $replyAuthor</gray></hover>"
+    fun formatReply(reply: StoredMessage?): Component {
+        if (reply == null) return Component.empty()
+        val originalMessage = reply.content.replace("'", "\\'")
+        return " <hover:show_text:'<aqua>${reply.author}</aqua><gray>:</gray> $originalMessage'>↪ ${reply.author}</hover>"
             .render()
     }
 
@@ -104,15 +104,14 @@ class Messenger(
         player: Player,
         sender: Component = formatSender(player),
         prefix: Component = formatPrefix(player),
-        messageID: Int? = null,
-        replyAuthor: String? = null,
-        replyContent: String? = null,
-        reply: Component = formatReply(replyAuthor, replyContent)
+        messageId: Int? = null,
+        reply: StoredMessage? = null,
+        replyComponent: Component = formatReply(reply)
     ) = formatConfig.chatMessage.render(
-        "message" toC prepareChatMessage(message, player, messageID),
+        "message" toC prepareChatMessage(message, player, messageId),
         "sender" toC sender,
         "prefix" toC prefix,
-        "reply" toC reply,
+        "reply" toC replyComponent,
     )
 
     val globalChat = proxy.all { it.uniqueId !in excludedFromGlobalChat }
@@ -120,24 +119,20 @@ class Messenger(
     fun broadcastChatMessage(
         player: Player,
         message: String,
-        replyAuthor: String? = null,
-        replyContent: String? = null
+        messageId: Int,
+        reply: StoredMessage? = null,
     ) {
         logger.info("${player.username} (${player.uniqueId}): $message")
         val originServer = player.currentServer.getOrNull()?.serverInfo?.name ?: "VOID"
         val compoPrefix = formatPrefix(player)
-        val messageID = ChatReply.nextMessageId()
-
-        ChatReply.saveMessage(messageID, player.username, message)
 
         globalChat.sendMessage(
             formatChatMessage(
                 message,
                 player,
                 prefix = compoPrefix,
-                messageID = messageID,
-                replyAuthor = replyAuthor,
-                replyContent = replyContent
+                messageId = messageId,
+                reply = reply,
             )
         )
 

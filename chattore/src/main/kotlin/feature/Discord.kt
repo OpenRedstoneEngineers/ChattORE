@@ -56,6 +56,7 @@ fun PluginScope.createDiscordFeature(
     messenger: Messenger,
     emojis: Emojis,
     config: DiscordConfig,
+    chatReply: ChatReply,
 ) {
     if (!config.enable) return
 
@@ -77,7 +78,7 @@ fun PluginScope.createDiscordFeature(
             val serverChannels = discordMap.mapValues { (_, api) -> getGameChat(api, config.channelId) }
             val mainBotChannel = getGameChat(discordNetwork, config.channelId)
             val serverBotIds = discordMap.values.map { it.selfId }.toSet()
-            val listener = DiscordListener(logger, messenger, emojis, config, serverBotIds)
+            val listener = DiscordListener(logger, messenger, emojis, config, serverBotIds, chatReply)
             @OptIn(KordPreview::class)
             mainBotChannel.live().onMessageCreate(block = listener::onMessageCreate)
             registerListeners(DiscordBroadcastListener(config, serverChannels, mainBotChannel, this))
@@ -132,6 +133,7 @@ private class DiscordListener(
     private val emojis: Emojis,
     private val config: DiscordConfig,
     private val serverBotIds: Set<Snowflake>,
+    private val chatReply: ChatReply,
 ) {
     private val emojiPattern = emojis.emojiToName.keys.joinToString("|", "(", ")") { Regex.escape(it) }
     private val emojiRegex = Regex(emojiPattern)
@@ -167,19 +169,17 @@ private class DiscordListener(
             "$text: $url"
         }.replace("""\s+""".toRegex(), " ")
 
-        val referenced = event.message.referencedMessage
-        val replyInfo = referenced?.let { extractReplyInfo(it) }
-        val replyAuthor = replyInfo?.first
-        val replyContent = replyInfo?.second?.let { replaceEmojis(it) }
+        val referencedId = event.message.data.messageReference.value?.id?.value
+        val reply = referencedId?.let { chatReply.getMessageByDiscordSnowflake(it.value.toLong()) }
 
-        val messageID = ChatReply.nextMessageId()
-        ChatReply.saveMessage(messageID, event.message.author?.username ?: "unknown", transformedMessage)
+        val messageId = chatReply.saveMessage(sender.username, transformedMessage)
+        chatReply.linkDiscordMessage(event.message.id.value.toLong(), messageId)
 
         messenger.globalChat.sendRichMessage(
             config.senderSpecificFormats[sender.id.value] ?: config.ingameFormat,
             "sender" toS displayName,
-            "message" toC messenger.prepareChatMessage(transformedMessage, null, messageID),
-            "reply" toC messenger.formatReply(replyAuthor, replyContent),
+            "message" toC messenger.prepareChatMessage(transformedMessage, null, messageId),
+            "reply" toC messenger.formatReply(reply),
         )
     }
 }

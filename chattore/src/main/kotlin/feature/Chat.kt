@@ -10,14 +10,16 @@ fun PluginScope.createChatFeature(
     messenger: Messenger,
     confirmations: ChatConfirmations,
     bubbleManager: BubbleManager,
+    chatReply: ChatReply,
 ) {
-    registerListeners(ChatListener(confirmations, messenger, bubbleManager))
+    registerListeners(ChatListener(confirmations, messenger, bubbleManager, chatReply))
 }
 
 private class ChatListener(
     private val confirmations: ChatConfirmations,
     private val messenger: Messenger,
     private val bubbleManager: BubbleManager,
+    private val chatReply: ChatReply,
 ) {
     @Subscribe
     fun onChatEvent(event: PlayerChatEvent) {
@@ -26,7 +28,8 @@ private class ChatListener(
         val bubble = bubbleManager.getBubbleByPlayer(player)
         if (bubble == null) {
             confirmations.submit(player, message) { player ->
-                messenger.broadcastChatMessage(player, message)
+                val messageId = chatReply.saveMessage(player.username, message)
+                messenger.broadcastChatMessage(player, message, messageId)
             }
             return
         }
