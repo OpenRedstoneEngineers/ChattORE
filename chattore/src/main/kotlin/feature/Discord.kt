@@ -162,7 +162,7 @@ private class DiscordListener(
         messenger.globalChat.sendRichMessage(
             config.senderSpecificFormats[sender.id.value] ?: config.ingameFormat,
             "sender" toS displayName,
-            "message" toC messenger.prepareChatMessage(transformedMessage, null, messageId),
+            "message" toC messenger.prepareChatMessage(transformedMessage, null),
             "reply" toC messenger.formatReply(reply),
         )
     }
