@@ -26,7 +26,6 @@ fun PluginScope.createBubbleFeature(
     chatConfirmations: ChatConfirmations,
     formatConfig: FormatConfig,
     userCache: UserCache,
-    chatReply: ChatReply,
 ): BubbleManager {
     val bubbleManager = BubbleManager()
     commandManager.apply {
@@ -67,7 +66,6 @@ fun PluginScope.createBubbleFeature(
             chatConfirmations,
             formatConfig,
             userCache,
-            chatReply,
         ),
     )
     return bubbleManager
@@ -83,7 +81,6 @@ private class BubbleCommand(
     private val chatConfirmations: ChatConfirmations,
     private val formatConfig: FormatConfig,
     private val userCache: UserCache,
-    private val chatReply: ChatReply,
 ) : BaseCommand() {
 
     @CatchUnknown
@@ -292,8 +289,7 @@ private class BubbleCommand(
     @Description("Send a message to global chat when in a bubble")
     fun shout(sender: Player, message: String) {
         chatConfirmations.submit(sender, message) { sender ->
-            val messageId = chatReply.saveMessage(sender.username, message)
-            messenger.broadcastChatMessage(sender, message, messageId)
+            messenger.broadcastChatMessage(sender, message)
             if (sender.uniqueId in messenger.excludedFromGlobalChat) {
                 sender.sendMessage(
                     textOfChildren(

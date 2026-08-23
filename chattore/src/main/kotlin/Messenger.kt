@@ -35,6 +35,11 @@ fun PluginScope.createMessenger(
     return Messenger(emojis, proxy, database, luckPerms, formatConfig, fileTypeMap, wiretap, logger, userCache)
 }
 
+data class StoredMessage(
+    val author: String,
+    val content: String,
+)
+
 class Messenger(
     emojis: Emojis,
     private val proxy: ProxyServer,
@@ -56,6 +61,31 @@ class Messenger(
         buildEmojiReplacement(emojis),
     )
     val excludedFromGlobalChat: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
+
+    private val maxMessages = 100
+    private val messageIdCounter = AtomicInteger(0)
+
+    private fun <K, V> createMap(): MutableMap<K, V> = Collections.synchronizedMap(
+        object : LinkedHashMap<K, V>(maxMessages) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<K, V>?): Boolean =
+                size > maxMessages
+        }
+    )
+
+    private val messages = createMap<Int, StoredMessage>()
+    private val discordMessageIds = createMap<Long, Int>()
+
+    fun saveMessage(author: String, content: String, discordSnowflake: Long? = null): Int {
+        val messageId = messageIdCounter.incrementAndGet()
+        if (discordSnowflake != null) discordMessageIds[discordSnowflake] = messageId
+        messages[messageId] = StoredMessage(author, content)
+        return messageId
+    }
+
+    fun getMessage(id: Int): StoredMessage? = messages[id]
+
+    fun getMessageByDiscordSnowflake(discordSnowflake: Long): StoredMessage? =
+        discordMessageIds[discordSnowflake]?.let { getMessage(it) }
 
     private fun formatReplacement(key: String, tag: String): TextReplacementConfig =
         TextReplacementConfig.builder()
@@ -102,29 +132,35 @@ class Messenger(
     fun formatChatMessage(
         message: String,
         player: Player,
-        sender: Component = formatSender(player),
         prefix: Component = formatPrefix(player),
         messageId: Int? = null,
         reply: StoredMessage? = null,
-        replyComponent: Component = formatReply(reply)
     ) = formatConfig.chatMessage.render(
-        "message" toC prepareChatMessage(message, player, messageId),
-        "sender" toC sender,
+        "message" toC prepareChatMessage(message, player).withReplyClick(messageId),
+        "sender" toC formatSender(player),
         "prefix" toC prefix,
-        "reply" toC replyComponent,
+        "reply" toC formatReply(reply),
     )
+
+    private fun Component.withReplyClick(messageId: Int?): Component =
+        if (messageId != null) {
+            clickEvent(ClickEvent.suggestCommand("/chatreply $messageId "))
+        } else {
+            this
+        }
 
     val globalChat = proxy.all { it.uniqueId !in excludedFromGlobalChat }
 
     fun broadcastChatMessage(
         player: Player,
         message: String,
-        messageId: Int,
         reply: StoredMessage? = null,
     ) {
         logger.info("${player.username} (${player.uniqueId}): $message")
         val originServer = player.currentServer.getOrNull()?.serverInfo?.name ?: "VOID"
         val compoPrefix = formatPrefix(player)
+
+        val messageId = saveMessage(player.username, message)
 
         globalChat.sendMessage(
             formatChatMessage(
@@ -161,7 +197,6 @@ class Messenger(
     fun prepareChatMessage(
         message: String,
         player: Player?,
-        messageId: Int? = null,
     ): Component {
         val canObfuscate = player?.hasPermission("chattore.chat.obfuscate") ?: false
         val parts = urlRegex.split(message)
@@ -174,12 +209,7 @@ class Messenger(
                 builder.append(formatLink(nextMatch.groupValues[1]))
             }
         }
-        val content = builder.build().performReplacements(chatReplacements)
-        return if (messageId != null) {
-            content.clickEvent(ClickEvent.suggestCommand("/chatreply $messageId "))
-        } else {
-            content
-        }
+        return builder.build().performReplacements(chatReplacements)
     }
 
     private fun formatLink(str: String): Component {

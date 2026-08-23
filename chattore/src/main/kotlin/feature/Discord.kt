@@ -6,7 +6,6 @@ import com.velocitypowered.api.proxy.ProxyServer
 import dev.kord.common.annotation.KordPreview
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
-import dev.kord.core.entity.Message
 import dev.kord.core.entity.channel.TextChannel
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.core.live.channel.live
@@ -56,7 +55,6 @@ fun PluginScope.createDiscordFeature(
     messenger: Messenger,
     emojis: Emojis,
     config: DiscordConfig,
-    chatReply: ChatReply,
 ) {
     if (!config.enable) return
 
@@ -77,7 +75,7 @@ fun PluginScope.createDiscordFeature(
             val discordMap = spawnServerBots(proxy, logger, config)
             val serverChannels = discordMap.mapValues { (_, api) -> getGameChat(api, config.channelId) }
             val mainBotChannel = getGameChat(discordNetwork, config.channelId)
-            val listener = DiscordListener(logger, messenger, emojis, config, chatReply)
+            val listener = DiscordListener(logger, messenger, emojis, config)
             @OptIn(KordPreview::class)
             mainBotChannel.live().onMessageCreate(block = listener::onMessageCreate)
             registerListeners(DiscordBroadcastListener(config, serverChannels, mainBotChannel, this))
@@ -131,7 +129,6 @@ private class DiscordListener(
     private val messenger: Messenger,
     private val emojis: Emojis,
     private val config: DiscordConfig,
-    private val chatReply: ChatReply,
 ) {
     private val emojiPattern = emojis.emojiToName.keys.joinToString("|", "(", ")") { Regex.escape(it) }
     private val emojiRegex = Regex(emojiPattern)
@@ -158,9 +155,9 @@ private class DiscordListener(
         }.replace("""\s+""".toRegex(), " ")
 
         val referencedId = event.message.data.messageReference.value?.id?.value
-        val reply = referencedId?.let { chatReply.getMessageByDiscordSnowflake(it.value.toLong()) }
+        val reply = referencedId?.let { messenger.getMessageByDiscordSnowflake(it.value.toLong()) }
 
-        val messageId = chatReply.saveMessage(displayName, transformedMessage, event.message.id.value.toLong())
+        val messageId = messenger.saveMessage(displayName, transformedMessage, event.message.id.value.toLong())
 
         messenger.globalChat.sendRichMessage(
             config.senderSpecificFormats[sender.id.value] ?: config.ingameFormat,
