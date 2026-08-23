@@ -34,7 +34,7 @@ data class DiscordConfig(
     val senderSpecificFormats: Map<ULong, String> = mapOf(
         1234567890UL to "<red>SomeUser <gray>»<reset> <message>"
     ),
-    val ingameFormat: String = "<dark_aqua>Discord</dark_aqua> <gray>|</gray> <dark_purple><sender></dark_purple><gray>:</gray> <message>",
+    val ingameFormat: String = "<dark_aqua>Discord</dark_aqua> <gray>|</gray> <dark_purple><sender></dark_purple><gray><reply>:</gray> <message>",
 )
 
 // TO Discord
@@ -153,10 +153,17 @@ private class DiscordListener(
             val url = matchResult.groupValues[2].trim()
             "$text: $url"
         }.replace("""\s+""".toRegex(), " ")
+
+        val referencedId = event.message.data.messageReference.value?.id?.value
+        val reply = referencedId?.let { messenger.getMessageByDiscordSnowflake(it.value.toLong()) }
+
+        val messageId = messenger.saveMessage(displayName, transformedMessage, event.message.id.value.toLong())
+
         messenger.globalChat.sendRichMessage(
             config.senderSpecificFormats[sender.id.value] ?: config.ingameFormat,
             "sender" toS displayName,
             "message" toC messenger.prepareChatMessage(transformedMessage, null),
+            "reply" toC messenger.formatReply(reply),
         )
     }
 }
