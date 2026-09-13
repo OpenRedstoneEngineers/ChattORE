@@ -143,7 +143,7 @@ class Messenger(
         player: Player,
         message: String,
         reply: StoredMessage? = null,
-    ) {
+    ): Int {
         logger.info("${player.username} (${player.uniqueId}): $message")
         val originServer = player.currentServer.getOrNull()?.serverInfo?.name ?: "VOID"
         val compoPrefix = formatPrefix(player)
@@ -168,6 +168,8 @@ class Messenger(
             message,
         )
         proxy.eventManager.fireAndForget(discordBroadcast)
+
+        return messageId
     }
 
     fun broadcastBubbleMessage(player: Player, message: String, bubble: Bubble) {

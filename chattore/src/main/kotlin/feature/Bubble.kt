@@ -289,13 +289,13 @@ private class BubbleCommand(
     @Description("Send a message to global chat when in a bubble")
     fun shout(sender: Player, message: String) {
         chatConfirmations.submit(sender, message) { sender ->
-            messenger.broadcastChatMessage(sender, message)
+            val messageId = messenger.broadcastChatMessage(sender, message)
             if (sender.uniqueId in messenger.excludedFromGlobalChat) {
                 sender.sendMessage(
                     textOfChildren(
                         formatConfig.shoutPrefix.render(),
                         space(),
-                        messenger.formatChatMessage(message, sender),
+                        messenger.formatChatMessage(message, sender, messageId = messageId),
                     ),
                 )
             }
