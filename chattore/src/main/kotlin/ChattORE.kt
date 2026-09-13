@@ -50,7 +50,8 @@ class ChattORE @Inject constructor(
             val userCache = createUserCache(database.database)
             val wiretap = createSpyingFeature(database, config.format)
             val messengerCache = MessengerCache()
-            val messenger = createMessenger(emojis, database, luckPerms, config.format, wiretap, userCache , messengerCache)
+            val messenger =
+                createMessenger(emojis, database, luckPerms, config.format, wiretap, userCache, messengerCache)
             val chatConfirmations = createChatConfirmations(ChatConfirmationConfig(config.regexes))
             val bubbleManager = createBubbleFeature(messenger, database, chatConfirmations, config.format, userCache)
             createAliasFeature()

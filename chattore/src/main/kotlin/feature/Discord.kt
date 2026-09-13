@@ -159,7 +159,7 @@ private class DiscordListener(
         val referencedId = event.message.data.messageReference.value?.id?.value
         val reply = referencedId?.let { messengerCache.getMessageByDiscordSnowflake(it.value.toLong()) }
 
-        val messageId = messengerCache.saveMessage(displayName, transformedMessage, event.message.id.value.toLong())
+        messengerCache.saveMessage(displayName, transformedMessage, event.message.id.value.toLong())
 
         messenger.globalChat.sendRichMessage(
             config.senderSpecificFormats[sender.id.value] ?: config.ingameFormat,

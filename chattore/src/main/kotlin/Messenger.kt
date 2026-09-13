@@ -33,7 +33,18 @@ fun PluginScope.createMessenger(
     val fileTypeMap = Json.parseToJsonElement(loadResourceAsString("filetypes.json"))
         .jsonObject.mapValues { (_, value) -> value.jsonArray.map { it.jsonPrimitive.content } }
         .onEach { (key, values) -> logger.info("Loaded ${values.size} of type $key") }
-    return Messenger(emojis, proxy, database, luckPerms, formatConfig, fileTypeMap, wiretap, logger, userCache, messengerCache)
+    return Messenger(
+        emojis,
+        proxy,
+        database,
+        luckPerms,
+        formatConfig,
+        fileTypeMap,
+        wiretap,
+        logger,
+        userCache,
+        messengerCache
+    )
 }
 
 data class StoredMessage(
@@ -226,7 +237,6 @@ class Messenger(
 class MessengerCache {
     private val maxMessages = 100 // Minecraft Vanilla chat history scroll limit is 100 messages
     private val messageIdCounter = AtomicInteger(0)
-
     private fun <K, V> createMap(): MutableMap<K, V> = Collections.synchronizedMap(
         object : LinkedHashMap<K, V>(maxMessages) {
             override fun removeEldestEntry(eldest: MutableMap.MutableEntry<K, V>?): Boolean =

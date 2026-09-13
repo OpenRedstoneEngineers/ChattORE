@@ -8,11 +8,7 @@ import co.aikar.commands.annotation.Syntax
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.player.PlayerChatEvent
 import com.velocitypowered.api.proxy.Player
-import org.openredstone.chattore.ChattoreException
-import org.openredstone.chattore.Messenger
-import org.openredstone.chattore.MessengerCache
-import org.openredstone.chattore.PluginScope
-import org.openredstone.chattore.sendError
+import org.openredstone.chattore.*
 
 fun PluginScope.createChatFeature(
     messenger: Messenger,
