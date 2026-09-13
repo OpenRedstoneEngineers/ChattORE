@@ -28,11 +28,12 @@ fun PluginScope.createMessenger(
     formatConfig: FormatConfig,
     wiretap: Wiretap,
     userCache: UserCache,
+    messengerCache: MessengerCache,
 ): Messenger {
     val fileTypeMap = Json.parseToJsonElement(loadResourceAsString("filetypes.json"))
         .jsonObject.mapValues { (_, value) -> value.jsonArray.map { it.jsonPrimitive.content } }
         .onEach { (key, values) -> logger.info("Loaded ${values.size} of type $key") }
-    return Messenger(emojis, proxy, database, luckPerms, formatConfig, fileTypeMap, wiretap, logger, userCache)
+    return Messenger(emojis, proxy, database, luckPerms, formatConfig, fileTypeMap, wiretap, logger, userCache, messengerCache)
 }
 
 data class StoredMessage(
@@ -50,6 +51,7 @@ class Messenger(
     private val wiretap: Wiretap,
     private val logger: Logger,
     private val userCache: UserCache,
+    private val messengerCache: MessengerCache,
 ) {
     private val urlRegex = """<?((http|https)://([\w_-]+(?:\.[\w_-]+)+)([^\s'<>]+)?)>?""".toRegex()
 
@@ -61,31 +63,6 @@ class Messenger(
         buildEmojiReplacement(emojis),
     )
     val excludedFromGlobalChat: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
-
-    private val maxMessages = 100
-    private val messageIdCounter = AtomicInteger(0)
-
-    private fun <K, V> createMap(): MutableMap<K, V> = Collections.synchronizedMap(
-        object : LinkedHashMap<K, V>(maxMessages) {
-            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<K, V>?): Boolean =
-                size > maxMessages
-        }
-    )
-
-    private val messages = createMap<Int, StoredMessage>()
-    private val discordMessageIds = createMap<Long, Int>()
-
-    fun saveMessage(author: String, content: String, discordSnowflake: Long? = null): Int {
-        val messageId = messageIdCounter.incrementAndGet()
-        if (discordSnowflake != null) discordMessageIds[discordSnowflake] = messageId
-        messages[messageId] = StoredMessage(author, content)
-        return messageId
-    }
-
-    fun getMessage(id: Int): StoredMessage? = messages[id]
-
-    fun getMessageByDiscordSnowflake(discordSnowflake: Long): StoredMessage? =
-        discordMessageIds[discordSnowflake]?.let { getMessage(it) }
 
     private fun formatReplacement(key: String, tag: String): TextReplacementConfig =
         TextReplacementConfig.builder()
@@ -160,7 +137,7 @@ class Messenger(
         val originServer = player.currentServer.getOrNull()?.serverInfo?.name ?: "VOID"
         val compoPrefix = formatPrefix(player)
 
-        val messageId = saveMessage(player.username, message)
+        val messageId = messengerCache.saveMessage(player.username, message)
 
         globalChat.sendMessage(
             formatChatMessage(
@@ -244,4 +221,31 @@ class Messenger(
 
     private fun Component.performReplacements(replacements: List<TextReplacementConfig>): Component =
         replacements.fold(this, Component::replaceText)
+}
+
+class MessengerCache {
+    private val maxMessages = 100 // Minecraft Vanilla chat history scroll limit is 100 messages
+    private val messageIdCounter = AtomicInteger(0)
+
+    private fun <K, V> createMap(): MutableMap<K, V> = Collections.synchronizedMap(
+        object : LinkedHashMap<K, V>(maxMessages) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<K, V>?): Boolean =
+                size > maxMessages
+        }
+    )
+
+    private val messages = createMap<Int, StoredMessage>()
+    private val discordMessageIds = createMap<Long, Int>()
+
+    fun saveMessage(author: String, content: String, discordSnowflake: Long? = null): Int {
+        val messageId = messageIdCounter.incrementAndGet()
+        if (discordSnowflake != null) discordMessageIds[discordSnowflake] = messageId
+        messages[messageId] = StoredMessage(author, content)
+        return messageId
+    }
+
+    fun getMessage(id: Int): StoredMessage? = messages[id]
+
+    fun getMessageByDiscordSnowflake(discordSnowflake: Long): StoredMessage? =
+        discordMessageIds[discordSnowflake]?.let { getMessage(it) }
 }

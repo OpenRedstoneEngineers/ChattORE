@@ -55,6 +55,7 @@ fun PluginScope.createDiscordFeature(
     messenger: Messenger,
     emojis: Emojis,
     config: DiscordConfig,
+    messengerCache: MessengerCache,
 ) {
     if (!config.enable) return
 
@@ -75,7 +76,7 @@ fun PluginScope.createDiscordFeature(
             val discordMap = spawnServerBots(proxy, logger, config)
             val serverChannels = discordMap.mapValues { (_, api) -> getGameChat(api, config.channelId) }
             val mainBotChannel = getGameChat(discordNetwork, config.channelId)
-            val listener = DiscordListener(logger, messenger, emojis, config)
+            val listener = DiscordListener(logger, messenger, emojis, config, messengerCache)
             @OptIn(KordPreview::class)
             mainBotChannel.live().onMessageCreate(block = listener::onMessageCreate)
             registerListeners(DiscordBroadcastListener(config, serverChannels, mainBotChannel, this))
@@ -129,6 +130,7 @@ private class DiscordListener(
     private val messenger: Messenger,
     private val emojis: Emojis,
     private val config: DiscordConfig,
+    private val messengerCache: MessengerCache,
 ) {
     private val emojiPattern = emojis.emojiToName.keys.joinToString("|", "(", ")") { Regex.escape(it) }
     private val emojiRegex = Regex(emojiPattern)
@@ -155,9 +157,9 @@ private class DiscordListener(
         }.replace("""\s+""".toRegex(), " ")
 
         val referencedId = event.message.data.messageReference.value?.id?.value
-        val reply = referencedId?.let { messenger.getMessageByDiscordSnowflake(it.value.toLong()) }
+        val reply = referencedId?.let { messengerCache.getMessageByDiscordSnowflake(it.value.toLong()) }
 
-        val messageId = messenger.saveMessage(displayName, transformedMessage, event.message.id.value.toLong())
+        val messageId = messengerCache.saveMessage(displayName, transformedMessage, event.message.id.value.toLong())
 
         messenger.globalChat.sendRichMessage(
             config.senderSpecificFormats[sender.id.value] ?: config.ingameFormat,

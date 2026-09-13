@@ -10,6 +10,7 @@ import com.velocitypowered.api.event.player.PlayerChatEvent
 import com.velocitypowered.api.proxy.Player
 import org.openredstone.chattore.ChattoreException
 import org.openredstone.chattore.Messenger
+import org.openredstone.chattore.MessengerCache
 import org.openredstone.chattore.PluginScope
 import org.openredstone.chattore.sendError
 
@@ -17,9 +18,10 @@ fun PluginScope.createChatFeature(
     messenger: Messenger,
     confirmations: ChatConfirmations,
     bubbleManager: BubbleManager,
+    messengerCache: MessengerCache,
 ) {
     registerListeners(ChatListener(confirmations, messenger, bubbleManager))
-    registerCommands(ChatReplyCommand(confirmations, messenger))
+    registerCommands(ChatReplyCommand(confirmations, messenger, messengerCache))
 }
 
 private class ChatListener(
@@ -53,6 +55,7 @@ private class ChatListener(
 private class ChatReplyCommand(
     private val confirmations: ChatConfirmations,
     private val messenger: Messenger,
+    private val messengerCache: MessengerCache,
 ) : BaseCommand() {
     @Default
     @Syntax("<id> <message>")
@@ -61,7 +64,7 @@ private class ChatReplyCommand(
         id: Int,
         message: String,
     ) {
-        val original = messenger.getMessage(id) ?: throw ChattoreException("That message is too old!")
+        val original = messengerCache.getMessage(id) ?: throw ChattoreException("That message is too old!")
 
         confirmations.submit(sender, message) { sender ->
             messenger.broadcastChatMessage(
