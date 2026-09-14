@@ -29,10 +29,10 @@ data class DiscordConfig(
     val serverTokens: Map<String, String> = mapOf(
         "serverOne" to "token1",
         "serverTwo" to "token2",
-        "serverThree" to "token3"
+        "serverThree" to "token3",
     ),
     val senderSpecificFormats: Map<ULong, String> = mapOf(
-        1234567890UL to "<red>SomeUser <gray>»<reset> <message>"
+        1234567890UL to "<red>SomeUser <gray>»<reset> <message>",
     ),
     val ingameFormat: String = "<dark_aqua>Discord</dark_aqua> <gray>|</gray> <dark_purple><sender></dark_purple><gray><reply>:</gray> <message>",
 )
@@ -184,7 +184,7 @@ private suspend fun CoroutineScope.spawnServerBots(
                     Supplied server keys in Discord configuration section does not match available servers:
                     Available servers: ${availableServers.joinToString()}
                     Configured servers: ${configServers.joinToString()}
-                """.trimIndent()
+                """.trimIndent(),
         )
     }
     return serverTokens.mapValues { (_, token) ->

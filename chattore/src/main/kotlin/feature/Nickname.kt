@@ -82,7 +82,7 @@ val hexColorMap = mapOf(
     "c" to Pair("#FF5555", "red"),
     "d" to Pair("#FF55FF", "light_purple"),
     "e" to Pair("#FFFF55", "yellow"),
-    "f" to Pair("#FFFFFF", "white")
+    "f" to Pair("#FFFFFF", "white"),
 )
 
 private val hexPattern = """#[0-9a-fA-F]{6}""".toRegex()

@@ -77,7 +77,7 @@ private class AliasCommand(
         } else {
             logger.info(
                 "Executing alias $base for user ${source.username}" +
-                    " (${source.uniqueId}) with args: ${args.joinToString(" ")}"
+                    " (${source.uniqueId}) with args: ${args.joinToString(" ")}",
             )
         }
         executeAlias(source, args.toList())
@@ -106,7 +106,7 @@ private class AliasCommand(
                 logger.info("Forwarding \"$commandLine\" to game server")
                 server.sendPluginMessage(
                     IDENTIFIER,
-                    Cbor.encodeToByteArray(AliasMessage(player.uniqueId, commandLine))
+                    Cbor.encodeToByteArray(AliasMessage(player.uniqueId, commandLine)),
                 )
             }.join()  // Hack, but guarantees execution order, assuming plugin messages are processed sequentially
         }

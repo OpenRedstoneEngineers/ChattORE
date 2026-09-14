@@ -43,7 +43,7 @@ fun PluginScope.createMessenger(
         wiretap,
         logger,
         userCache,
-        messengerCache
+        messengerCache,
     )
 }
 
@@ -157,7 +157,7 @@ class Messenger(
                 prefix = compoPrefix,
                 messageId = messageId,
                 reply = reply,
-            )
+            ),
         )
 
         val plainPrefix = PlainTextComponentSerializer.plainText().serialize(compoPrefix)
@@ -243,7 +243,7 @@ class MessengerCache {
         object : LinkedHashMap<K, V>(maxMessages) {
             override fun removeEldestEntry(eldest: MutableMap.MutableEntry<K, V>?): Boolean =
                 size > maxMessages
-        }
+        },
     )
 
     private val messages = createMap<Int, StoredMessage>()
