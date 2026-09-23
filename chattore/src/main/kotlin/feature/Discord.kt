@@ -29,10 +29,10 @@ data class DiscordConfig(
     val serverTokens: Map<String, String> = mapOf(
         "serverOne" to "token1",
         "serverTwo" to "token2",
-        "serverThree" to "token3"
+        "serverThree" to "token3",
     ),
     val senderSpecificFormats: Map<ULong, String> = mapOf(
-        1234567890UL to "<red>SomeUser <gray>»<reset> <message>"
+        1234567890UL to "<red>SomeUser <gray>»<reset> <message>",
     ),
     val ingameFormat: String = "<dark_aqua>Discord</dark_aqua> <gray>|</gray> <dark_purple><sender></dark_purple><gray>:</gray> <message>",
 )
@@ -58,36 +58,35 @@ fun PluginScope.createDiscordFeature(
 ) {
     if (!config.enable) return
 
-    @OptIn(DelicateCoroutinesApi::class)
-    GlobalScope.launch(Dispatchers.Default) {
-        coroutineScope {
-            val discordNetwork = Kord(config.networkToken)
-            // login blocks until the bot shuts down, so we launch it in its own coroutine
-            launch {
-                discordNetwork.login {
-                    @OptIn(PrivilegedIntent::class)
-                    intents += Intent.MessageContent
-                    presence {
-                        playing(config.playingMessage)
-                    }
+    val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    coroutineScope.launch {
+        val discordNetwork = Kord(config.networkToken)
+        // login blocks until the bot shuts down, so we launch it in its own coroutine
+        launch {
+            discordNetwork.login {
+                @OptIn(PrivilegedIntent::class)
+                intents += Intent.MessageContent
+                presence {
+                    playing(config.playingMessage)
                 }
             }
-            val discordMap = spawnServerBots(proxy, logger, config)
-            val serverChannels = discordMap.mapValues { (_, api) -> getGameChat(api, config.channelId) }
-            val mainBotChannel = getGameChat(discordNetwork, config.channelId)
-            val listener = DiscordListener(logger, messenger, emojis, config)
-            @OptIn(KordPreview::class)
-            mainBotChannel.live().onMessageCreate(block = listener::onMessageCreate)
-            registerListeners(DiscordBroadcastListener(config, serverChannels, mainBotChannel, this))
-            onEvent<ProxyShutdownEvent> {
-                // block so that velocity waits before shutting down
-                // future considerations:
-                // - can this use async velocity events?
-                // - should we do the shutdowns concurrently?
-                runBlocking {
-                    discordNetwork.shutdown()
-                    discordMap.forEach { (_, kord) -> kord.shutdown() }
-                }
+        }
+        val discordMap = spawnServerBots(proxy, logger, config)
+        val serverChannels = discordMap.mapValues { (_, api) -> getGameChat(api, config.channelId) }
+        val mainBotChannel = getGameChat(discordNetwork, config.channelId)
+        val listener = DiscordListener(logger, messenger, emojis, config)
+        @OptIn(KordPreview::class)
+        mainBotChannel.live().onMessageCreate(block = listener::onMessageCreate)
+        registerListeners(DiscordBroadcastListener(config, serverChannels, mainBotChannel, coroutineScope))
+        onEvent<ProxyShutdownEvent> {
+            // block so that velocity waits before shutting down
+            // future considerations:
+            // - can this use async velocity events?
+            // - should we do the shutdowns concurrently?
+            // - should we cancel the coroutine scope?
+            runBlocking {
+                discordNetwork.shutdown()
+                discordMap.forEach { (_, kord) -> kord.shutdown() }
             }
         }
     }
@@ -175,7 +174,7 @@ private suspend fun CoroutineScope.spawnServerBots(
                     Supplied server keys in Discord configuration section does not match available servers:
                     Available servers: ${availableServers.joinToString()}
                     Configured servers: ${configServers.joinToString()}
-                """.trimIndent()
+                """.trimIndent(),
         )
     }
     return serverTokens.mapValues { (_, token) ->
