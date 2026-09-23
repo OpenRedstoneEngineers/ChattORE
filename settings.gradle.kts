@@ -10,5 +10,6 @@ dependencyResolutionManagement {
         maven("https://repo.papermc.io/repository/maven-public/")
         maven("https://repo.aikar.co/content/groups/aikar/")
         maven("https://repo.extendedclip.com/releases/")
+        maven("https://snapshots.kord.dev")
     }
 }
