@@ -4,7 +4,7 @@
 package org.openredstone.chattore
 
 fun weighted(vararg colors: Pair<String, Int>): Array<String> =
-        colors.flatMap { (value, weight) -> List(weight) { value } }.toTypedArray()
+    colors.flatMap { (value, weight) -> List(weight) { value } }.toTypedArray()
 
 val prideColors = mapOf(
     "rainbow" to arrayOf(
@@ -13,7 +13,7 @@ val prideColors = mapOf(
         "#FFEE00",
         "#028121",
         "#004CFF",
-        "#770088"
+        "#770088",
     ),
 
     "transgender" to arrayOf(
@@ -21,14 +21,14 @@ val prideColors = mapOf(
         "#F6AAB7",
         "#FFFFFF",
         "#F6AAB7",
-        "#55CDFD"
+        "#55CDFD",
     ),
 
     "nonbinary" to arrayOf(
         "#FCF431",
         "#FCFCFC",
         "#9D59D2",
-        "#282828"
+        "#282828",
     ),
 
     "agender" to arrayOf(
@@ -38,13 +38,13 @@ val prideColors = mapOf(
         "#BAF484",
         "#FFFFFF",
         "#BABABA",
-        "#000000"
+        "#000000",
     ),
 
     "queer" to arrayOf(
         "#B57FDD",
         "#FFFFFF",
-        "#49821E"
+        "#49821E",
     ),
 
     "genderfluid" to arrayOf(
@@ -52,19 +52,19 @@ val prideColors = mapOf(
         "#FFFFFF",
         "#BF12D7",
         "#000000",
-        "#303CBE"
+        "#303CBE",
     ),
 
     "bisexual" to arrayOf(
         "#D60270",
         "#9B4F96",
-        "#0038A8"
+        "#0038A8",
     ),
 
     "pansexual" to arrayOf(
         "#FF1C8D",
         "#FFD700",
-        "#1AB3FF"
+        "#1AB3FF",
     ),
 
     "polysexual" to arrayOf(
@@ -94,7 +94,7 @@ val prideColors = mapOf(
         "#98E8C1",
         "#FFFFFF",
         "#7BADE2",
-        "#3D1A78"
+        "#3D1A78",
     ),
 
     "lesbian" to arrayOf(
@@ -102,7 +102,7 @@ val prideColors = mapOf(
         "#FF9B56",
         "#FFFFFF",
         "#D462A6",
-        "#A40062"
+        "#A40062",
     ),
 
     "abrosexual" to arrayOf(
@@ -117,7 +117,7 @@ val prideColors = mapOf(
         "#000000",
         "#A4A4A4",
         "#FFFFFF",
-        "#810081"
+        "#810081",
     ),
 
     "aromantic" to arrayOf(
@@ -125,7 +125,7 @@ val prideColors = mapOf(
         "#A8D47A",
         "#FFFFFF",
         "#ABABAB",
-        "#000000"
+        "#000000",
     ),
 
     "aroace1" to arrayOf(
@@ -133,7 +133,7 @@ val prideColors = mapOf(
         "#ECCD00",
         "#FFFFFF",
         "#62AEDC",
-        "#203856"
+        "#203856",
     ),
 
     "aroace2" to arrayOf(
@@ -142,7 +142,7 @@ val prideColors = mapOf(
         "#A4A4A4",
         "#FFFFFF",
         "#A8D47A",
-        "#3BA740"
+        "#3BA740",
     ),
 
     "aroace3" to arrayOf(
@@ -153,12 +153,12 @@ val prideColors = mapOf(
         "#000000",
         "#A4A4A4",
         "#FFFFFF",
-        "#810081"
+        "#810081",
     ),
 
     "autosexual" to arrayOf(
         "#99D9EA",
-        "#7F7F7F"
+        "#7F7F7F",
     ),
 
     "intergender" to arrayOf(
@@ -303,7 +303,7 @@ val prideColors = mapOf(
     "neutrois" to arrayOf(
         "#FFFFFF",
         "#1F9F00",
-        "#000000"
+        "#000000",
     ),
 
     "biromantic1" to arrayOf(
@@ -331,14 +331,14 @@ val prideColors = mapOf(
     ),
 
     "boyflux2" to weighted(
-        Pair("#E48AE4",1),
-        Pair("#9A81B4",1),
-        Pair("#55BFAB",1),
-        Pair("#FFFFFF",1),
-        Pair("#A8A8A8",1),
-        Pair("#81D5EF",5),
-        Pair("#69ABE5",5),
-        Pair("#5276D4",5),
+        Pair("#E48AE4", 1),
+        Pair("#9A81B4", 1),
+        Pair("#55BFAB", 1),
+        Pair("#FFFFFF", 1),
+        Pair("#A8A8A8", 1),
+        Pair("#81D5EF", 5),
+        Pair("#69ABE5", 5),
+        Pair("#5276D4", 5),
     ),
 
     "girlflux" to arrayOf(
@@ -372,7 +372,7 @@ val prideColors = mapOf(
         "#EAF8E4",
         "#FDFDFB",
         "#E1EFF7",
-        "#F4E2C4"
+        "#F4E2C4",
     ),
 
     "unlabeled2" to arrayOf(
@@ -381,7 +381,7 @@ val prideColors = mapOf(
         "#F7DCDA",
         "#EC9BEE",
         "#9541FA",
-        "#7D2557"
+        "#7D2557",
     ),
 
     "pangender" to arrayOf(
@@ -395,13 +395,13 @@ val prideColors = mapOf(
     ),
 
     "gendernonconforming1" to weighted(
-        Pair("#50284D",4),
-        Pair("#96467B",1),
-        Pair("#5C96F7",1),
-        Pair("#FFE6F7",1),
-        Pair("#5C96F7",1),
-        Pair("#96467B",1),
-        Pair("#50284D",4),
+        Pair("#50284D", 4),
+        Pair("#96467B", 1),
+        Pair("#5C96F7", 1),
+        Pair("#FFE6F7", 1),
+        Pair("#5C96F7", 1),
+        Pair("#96467B", 1),
+        Pair("#50284D", 4),
     ),
 
     "gendernonconforming2" to arrayOf(
@@ -411,7 +411,7 @@ val prideColors = mapOf(
         "#FFE6F7",
         "#5C96F7",
         "#96467B",
-        "#50284D"
+        "#50284D",
     ),
 
     "femboy" to arrayOf(
@@ -421,7 +421,7 @@ val prideColors = mapOf(
         "#57CEF8",
         "#FEFEFE",
         "#E4AFCD",
-        "#D260A5"
+        "#D260A5",
     ),
 
     "tomboy" to arrayOf(
@@ -431,7 +431,7 @@ val prideColors = mapOf(
         "#F1A9B7",
         "#FEFEFE",
         "#613A03",
-        "#2F3FB9"
+        "#2F3FB9",
     ),
 
     "gynesexual" to arrayOf(
@@ -451,7 +451,7 @@ val prideColors = mapOf(
         "#4B484B",
         "#000000",
         "#4B484B",
-        "#081149"
+        "#081149",
     ),
 
     "voidgirl" to arrayOf(
@@ -459,7 +459,7 @@ val prideColors = mapOf(
         "#7A5A8B",
         "#E09BED",
         "#7A5A8B",
-        "#180827"
+        "#180827",
     ),
 
     "voidboy" to arrayOf(
@@ -467,13 +467,13 @@ val prideColors = mapOf(
         "#547655",
         "#66B969",
         "#547655",
-        "#0B130C"
+        "#0B130C",
     ),
 
     "nonhuman-unity" to arrayOf(
         "#177B49",
         "#FFFFFF",
-        "#593C90"
+        "#593C90",
     ),
 
     "plural" to arrayOf(
@@ -520,5 +520,5 @@ val prideColors = mapOf(
 )
 
 val pridePresets = prideColors.mapValues { (_, colors) ->
-        "<gradient:${colors.joinToString(':'.toString())}><username></gradient>"
-    }.toSortedMap()
+    "<gradient:${colors.joinToString(':'.toString())}><username></gradient>"
+}.toSortedMap()

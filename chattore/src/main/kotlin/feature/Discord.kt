@@ -34,7 +34,7 @@ data class DiscordConfig(
     val senderSpecificFormats: Map<ULong, String> = mapOf(
         1234567890UL to "<red>SomeUser <gray>»<reset> <message>",
     ),
-    val ingameFormat: String = "<dark_aqua>Discord</dark_aqua> <gray>|</gray> <dark_purple><sender></dark_purple><gray>:</gray> <message>",
+    val ingameFormat: String = "<dark_aqua>Discord</dark_aqua> <gray>|</gray> <dark_purple><sender></dark_purple><gray><reply>:</gray> <message>",
 )
 
 // TO Discord
@@ -55,6 +55,7 @@ fun PluginScope.createDiscordFeature(
     messenger: Messenger,
     emojis: Emojis,
     config: DiscordConfig,
+    messengerCache: MessengerCache,
 ) {
     if (!config.enable) return
 
@@ -74,7 +75,7 @@ fun PluginScope.createDiscordFeature(
         val discordMap = spawnServerBots(proxy, logger, config)
         val serverChannels = discordMap.mapValues { (_, api) -> getGameChat(api, config.channelId) }
         val mainBotChannel = getGameChat(discordNetwork, config.channelId)
-        val listener = DiscordListener(logger, messenger, emojis, config)
+        val listener = DiscordListener(logger, messenger, emojis, config, messengerCache)
         @OptIn(KordPreview::class)
         mainBotChannel.live().onMessageCreate(block = listener::onMessageCreate)
         registerListeners(DiscordBroadcastListener(config, serverChannels, mainBotChannel, coroutineScope))
@@ -128,6 +129,7 @@ private class DiscordListener(
     private val messenger: Messenger,
     private val emojis: Emojis,
     private val config: DiscordConfig,
+    private val messengerCache: MessengerCache,
 ) {
     private val emojiPattern = emojis.emojiToName.keys.joinToString("|", "(", ")") { Regex.escape(it) }
     private val emojiRegex = Regex(emojiPattern)
@@ -152,10 +154,17 @@ private class DiscordListener(
             val url = matchResult.groupValues[2].trim()
             "$text: $url"
         }.replace("""\s+""".toRegex(), " ")
+
+        val referencedId = event.message.data.messageReference.value?.id?.value
+        val reply = referencedId?.let { messengerCache.getMessageByDiscordSnowflake(it.value.toLong()) }
+
+        messengerCache.saveMessage(displayName, transformedMessage, event.message.id.value.toLong())
+
         messenger.globalChat.sendRichMessage(
             config.senderSpecificFormats[sender.id.value] ?: config.ingameFormat,
             "sender" toS displayName,
             "message" toC messenger.prepareChatMessage(transformedMessage, null),
+            "reply" toC messenger.formatReply(reply),
         )
     }
 }

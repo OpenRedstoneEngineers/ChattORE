@@ -15,7 +15,7 @@ data class ChattOREConfig(
 )
 
 data class FormatConfig(
-    val chatMessage: String = "<prefix> <gray>|</gray> <sender><gray>:</gray> <message>",
+    val chatMessage: String = "<prefix> <gray>|</gray> <sender><reply><gray>:</gray> <message>",
     val join: String = "<yellow><player> has joined the network",
     val leave: String = "<yellow><player> has left the network",
     val bubblePrefix: String = "<bubble_info>\uD83D\uDCAC</bubble_info>",
