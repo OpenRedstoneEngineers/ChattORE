@@ -59,36 +59,35 @@ fun PluginScope.createDiscordFeature(
 ) {
     if (!config.enable) return
 
-    @OptIn(DelicateCoroutinesApi::class)
-    GlobalScope.launch(Dispatchers.Default) {
-        coroutineScope {
-            val discordNetwork = Kord(config.networkToken)
-            // login blocks until the bot shuts down, so we launch it in its own coroutine
-            launch {
-                discordNetwork.login {
-                    @OptIn(PrivilegedIntent::class)
-                    intents += Intent.MessageContent
-                    presence {
-                        playing(config.playingMessage)
-                    }
+    val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    coroutineScope.launch {
+        val discordNetwork = Kord(config.networkToken)
+        // login blocks until the bot shuts down, so we launch it in its own coroutine
+        launch {
+            discordNetwork.login {
+                @OptIn(PrivilegedIntent::class)
+                intents += Intent.MessageContent
+                presence {
+                    playing(config.playingMessage)
                 }
             }
-            val discordMap = spawnServerBots(proxy, logger, config)
-            val serverChannels = discordMap.mapValues { (_, api) -> getGameChat(api, config.channelId) }
-            val mainBotChannel = getGameChat(discordNetwork, config.channelId)
-            val listener = DiscordListener(logger, messenger, emojis, config, messengerCache)
-            @OptIn(KordPreview::class)
-            mainBotChannel.live().onMessageCreate(block = listener::onMessageCreate)
-            registerListeners(DiscordBroadcastListener(config, serverChannels, mainBotChannel, this))
-            onEvent<ProxyShutdownEvent> {
-                // block so that velocity waits before shutting down
-                // future considerations:
-                // - can this use async velocity events?
-                // - should we do the shutdowns concurrently?
-                runBlocking {
-                    discordNetwork.shutdown()
-                    discordMap.forEach { (_, kord) -> kord.shutdown() }
-                }
+        }
+        val discordMap = spawnServerBots(proxy, logger, config)
+        val serverChannels = discordMap.mapValues { (_, api) -> getGameChat(api, config.channelId) }
+        val mainBotChannel = getGameChat(discordNetwork, config.channelId)
+        val listener = DiscordListener(logger, messenger, emojis, config, messengerCache)
+        @OptIn(KordPreview::class)
+        mainBotChannel.live().onMessageCreate(block = listener::onMessageCreate)
+        registerListeners(DiscordBroadcastListener(config, serverChannels, mainBotChannel, coroutineScope))
+        onEvent<ProxyShutdownEvent> {
+            // block so that velocity waits before shutting down
+            // future considerations:
+            // - can this use async velocity events?
+            // - should we do the shutdowns concurrently?
+            // - should we cancel the coroutine scope?
+            runBlocking {
+                discordNetwork.shutdown()
+                discordMap.forEach { (_, kord) -> kord.shutdown() }
             }
         }
     }
