@@ -53,7 +53,7 @@ class ChattORE @Inject constructor(
             val messenger =
                 createMessenger(emojis, database, luckPerms, config.format, wiretap, userCache, messengerCache)
             val chatConfirmations = createChatConfirmations(ChatConfirmationConfig(config.regexes))
-            val bubbleManager = createBubbleFeature(messenger, database, chatConfirmations, config.format, userCache)
+            val bubbleManager = createBubbleFeature(messenger, chatConfirmations, config.format, userCache)
             createAliasFeature()
             createChatFeature(messenger, chatConfirmations, bubbleManager, messengerCache)
             createChattoreFeature()

@@ -17,12 +17,10 @@ import org.openredstone.chattore.*
 import java.util.*
 import kotlin.jvm.optionals.getOrNull
 
-private val ShowGlobalChatInBubble = Setting("showGlobalChatInBubble", default = false)
 private const val BUBBLE_OWNED = "bubbleOwned"
 
 fun PluginScope.createBubbleFeature(
     messenger: Messenger,
-    database: Storage,
     chatConfirmations: ChatConfirmations,
     formatConfig: FormatConfig,
     userCache: UserCache,
@@ -61,7 +59,6 @@ fun PluginScope.createBubbleFeature(
         BubbleCommand(
             messenger,
             proxy,
-            database,
             bubbleManager,
             chatConfirmations,
             formatConfig,
@@ -76,7 +73,6 @@ fun PluginScope.createBubbleFeature(
 private class BubbleCommand(
     private val messenger: Messenger,
     private val proxy: ProxyServer,
-    private val database: Storage,
     private val bubbleManager: BubbleManager,
     private val chatConfirmations: ChatConfirmations,
     private val formatConfig: FormatConfig,
@@ -99,7 +95,6 @@ private class BubbleCommand(
         if (bubbleManager.getBubbleByPlayer(sender) != null)
             throw ChattoreException("You are already in a bubble!")
         val bubble = bubbleManager.createBubble(sender.uniqueId)
-        addExcluded(sender.uniqueId)
         sender.sendInfo("Bubble created.")
         sendInvites(sender, bubble, players)
     }
@@ -160,7 +155,6 @@ private class BubbleCommand(
 
         bubble.invitedPlayers.remove(sender.uniqueId)
         bubble.players.add(sender.uniqueId)
-        addExcluded(sender.uniqueId)
         bubble.sendInfos(
             sender,
             "You joined ${player.username}'s bubble.",
@@ -273,7 +267,6 @@ private class BubbleCommand(
     @Subcommand("showglobalchat|sgc")
     @Description("Control the visibility of global chat when in a bubble")
     fun showGlobalChat(sender: Player, showGlobalChat: Boolean) {
-        database.setSetting(ShowGlobalChatInBubble, sender.uniqueId, showGlobalChat)
         if (showGlobalChat) {
             messenger.excludedFromGlobalChat.remove(sender.uniqueId)
         } else if (bubbleManager.getBubbleByPlayer(sender) != null) {
@@ -312,12 +305,6 @@ private class BubbleCommand(
     private fun Bubble.broadcastInfo(message: String) {
         players.forEach { uuid ->
             proxy.playerOrNull(uuid)?.sendInfo(message)
-        }
-    }
-
-    private fun addExcluded(uuid: UUID) {
-        if (!database.getSetting(ShowGlobalChatInBubble, uuid)) {
-            messenger.excludedFromGlobalChat.add(uuid)
         }
     }
 }
