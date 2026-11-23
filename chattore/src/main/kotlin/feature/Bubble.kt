@@ -6,15 +6,21 @@ import co.aikar.commands.InvalidCommandArgument
 import co.aikar.commands.annotation.*
 import co.aikar.commands.velocity.contexts.OnlinePlayer
 import com.velocitypowered.api.command.CommandSource
+import com.velocitypowered.api.event.Subscribe
+import com.velocitypowered.api.event.connection.DisconnectEvent
+import com.velocitypowered.api.event.connection.PostLoginEvent
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.ProxyServer
+import com.velocitypowered.api.scheduler.ScheduledTask
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.Component.*
 import net.kyori.adventure.text.event.ClickEvent.runCommand
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.event.HoverEvent.showText
 import org.openredstone.chattore.*
+import java.time.Duration
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.jvm.optionals.getOrNull
 
 private const val BUBBLE_OWNED = "bubbleOwned"
@@ -64,6 +70,14 @@ fun PluginScope.createBubbleFeature(
             formatConfig,
             userCache,
         ),
+    )
+    registerListeners(
+        BubbleListener(
+            messenger,
+            proxy,
+            bubbleManager,
+            this.plugin as ChattORE
+        )
     )
     return bubbleManager
 }
@@ -306,6 +320,31 @@ private class BubbleCommand(
         players.forEach { uuid ->
             proxy.playerOrNull(uuid)?.sendInfo(message)
         }
+    }
+}
+
+private class BubbleListener(
+    private val messenger: Messenger,
+    private val proxy: ProxyServer,
+    private val bubbleManager: BubbleManager,
+    private val plugin: ChattORE,
+) {
+
+    val bubbleLeaveJobs = ConcurrentHashMap<UUID, ScheduledTask>()
+
+    @Subscribe
+    fun joinEvent(event: PostLoginEvent) {
+        bubbleLeaveJobs[event.player.uniqueId]?.cancel()
+    }
+
+    @Subscribe
+    fun leaveEvent(event: DisconnectEvent) {
+        val bubble = bubbleManager.getBubbleByPlayer(event.player) ?: return
+        bubbleLeaveJobs[event.player.uniqueId] = proxy.scheduler.buildTask(plugin) { ->
+            bubble.players.remove(event.player.uniqueId)
+            messenger.excludedFromGlobalChat.remove(event.player.uniqueId)
+            if (bubble.players.isEmpty()) bubbleManager.removeBubble(bubble)
+        }.delay(Duration.ofMinutes(10)).schedule()
     }
 }
 
