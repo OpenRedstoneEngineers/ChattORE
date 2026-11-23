@@ -108,9 +108,12 @@ private class BubbleCommand(
     fun create(sender: Player, @ConsumesRest players: Array<Player>) {
         if (bubbleManager.getBubbleByPlayer(sender) != null)
             throw ChattoreException("You are already in a bubble!")
+        val targets = players.toMutableList().filter { it.uniqueId != sender.uniqueId }
+        if (targets.isEmpty())
+            throw ChattoreException("Cannot create an empty bubble!")
         val bubble = bubbleManager.createBubble(sender.uniqueId)
         sender.sendInfo("Bubble created.")
-        sendInvites(sender, bubble, players)
+        sendInvites(sender, bubble, targets)
     }
 
     @Subcommand("invite")
@@ -121,10 +124,10 @@ private class BubbleCommand(
             throw ChattoreException("Your bubble is public, anyone can join without invitation.")
         if (targets.isEmpty())
             throw ChattoreException("Please specify one or more players to invite.")
-        sendInvites(sender, bubble, targets)
+        sendInvites(sender, bubble, targets.toMutableList())
     }
 
-    private fun sendInvites(sender: Player, bubble: Bubble, targets: Array<Player>) {
+    private fun sendInvites(sender: Player, bubble: Bubble, targets: List<Player>) {
         for (player in targets) {
             try {
                 doInvite(sender, bubble, player)
