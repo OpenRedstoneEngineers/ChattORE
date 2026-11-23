@@ -108,7 +108,7 @@ private class BubbleCommand(
     fun create(sender: Player, @ConsumesRest players: Array<Player>) {
         if (bubbleManager.getBubbleByPlayer(sender) != null)
             throw ChattoreException("You are already in a bubble!")
-        val targets = players.toMutableList().filter { it.uniqueId != sender.uniqueId }
+        val targets = players.toList().filter { it.uniqueId != sender.uniqueId }
         if (targets.isEmpty())
             throw ChattoreException("Cannot create an empty bubble!")
         val bubble = bubbleManager.createBubble(sender.uniqueId)
