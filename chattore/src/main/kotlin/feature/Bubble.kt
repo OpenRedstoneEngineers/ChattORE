@@ -21,6 +21,7 @@ import org.openredstone.chattore.*
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.forEach
 import kotlin.jvm.optionals.getOrNull
 
 private const val BUBBLE_OWNED = "bubbleOwned"
@@ -76,7 +77,7 @@ fun PluginScope.createBubbleFeature(
             messenger,
             proxy,
             bubbleManager,
-            this.plugin as ChattORE
+            plugin as ChattORE
         )
     )
     return bubbleManager
@@ -283,7 +284,7 @@ private class BubbleCommand(
 
     @Subcommand("showglobalchat|sgc")
     @Description("Control the visibility of global chat when in a bubble")
-    fun showGlobalChat(sender: Player, showGlobalChat: Boolean) {
+    fun showGlobalChat(sender: Player, bubble: Bubble, showGlobalChat: Boolean) {
         if (showGlobalChat) {
             messenger.excludedFromGlobalChat.remove(sender.uniqueId)
         } else if (bubbleManager.getBubbleByPlayer(sender) != null) {
@@ -333,11 +334,11 @@ private class BubbleListener(
     private val plugin: ChattORE,
 ) {
 
-    val bubbleLeaveJobs = ConcurrentHashMap<UUID, ScheduledTask>()
+    private val bubbleLeaveJobs = ConcurrentHashMap<UUID, ScheduledTask>()
 
     @Subscribe
     fun joinEvent(event: PostLoginEvent) {
-        bubbleLeaveJobs[event.player.uniqueId]?.cancel()
+        bubbleLeaveJobs.remove(event.player.uniqueId)?.cancel()
     }
 
     @Subscribe
@@ -346,7 +347,13 @@ private class BubbleListener(
         bubbleLeaveJobs[event.player.uniqueId] = proxy.scheduler.buildTask(plugin) { ->
             bubble.players.remove(event.player.uniqueId)
             messenger.excludedFromGlobalChat.remove(event.player.uniqueId)
-            if (bubble.players.isEmpty()) bubbleManager.removeBubble(bubble)
+            if (bubble.players.isEmpty()) {
+                bubbleManager.removeBubble(bubble)
+            } else {
+                bubble.players.forEach { uuid ->
+                    proxy.playerOrNull(uuid)?.sendInfo("Player ${event.player.username} has been removed.")
+                }
+            }
         }.delay(Duration.ofMinutes(10)).schedule()
     }
 }
