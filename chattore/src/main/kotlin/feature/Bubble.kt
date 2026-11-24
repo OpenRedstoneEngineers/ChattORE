@@ -124,7 +124,7 @@ private class BubbleCommand(
             throw ChattoreException("Your bubble is public, anyone can join without invitation.")
         if (targets.isEmpty())
             throw ChattoreException("Please specify one or more players to invite.")
-        sendInvites(sender, bubble, targets.toMutableList())
+        sendInvites(sender, bubble, targets.toList())
     }
 
     private fun sendInvites(sender: Player, bubble: Bubble, targets: List<Player>) {
