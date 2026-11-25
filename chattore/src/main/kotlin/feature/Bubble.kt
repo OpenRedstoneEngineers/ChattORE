@@ -77,7 +77,7 @@ fun PluginScope.createBubbleFeature(
             messenger,
             proxy,
             bubbleManager,
-            plugin as ChattORE
+            plugin
         )
     )
     return bubbleManager
@@ -331,7 +331,7 @@ private class BubbleListener(
     private val messenger: Messenger,
     private val proxy: ProxyServer,
     private val bubbleManager: BubbleManager,
-    private val plugin: ChattORE,
+    private val plugin: Any,
 ) {
 
     private val bubbleLeaveJobs = ConcurrentHashMap<UUID, ScheduledTask>()
