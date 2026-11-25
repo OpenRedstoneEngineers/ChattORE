@@ -183,13 +183,9 @@ private class BubbleCommand(
     @Subcommand("leave")
     @Description("Leave your current bubble")
     fun leave(sender: Player, bubble: Bubble) {
-        bubble.players.remove(sender.uniqueId)
         messenger.excludedFromGlobalChat.remove(sender.uniqueId)
+        bubbleManager.removePlayer(sender)
         sender.sendInfo("You left the bubble.")
-        if (bubble.players.isEmpty()) {
-            bubbleManager.removeBubble(bubble)
-            return
-        }
         bubble.broadcastInfo("${sender.username} left the bubble.")
         if (bubble.owner == sender.uniqueId) {
             val newOwner = bubble.players.first()
@@ -345,14 +341,10 @@ private class BubbleListener(
     fun leaveEvent(event: DisconnectEvent) {
         val bubble = bubbleManager.getBubbleByPlayer(event.player) ?: return
         bubbleLeaveJobs[event.player.uniqueId] = proxy.scheduler.buildTask(plugin) { ->
-            bubble.players.remove(event.player.uniqueId)
+            bubbleManager.removePlayer(event.player)
             messenger.excludedFromGlobalChat.remove(event.player.uniqueId)
-            if (bubble.players.isEmpty()) {
-                bubbleManager.removeBubble(bubble)
-            } else {
-                bubble.players.forEach { uuid ->
-                    proxy.playerOrNull(uuid)?.sendInfo("Player ${event.player.username} has been removed.")
-                }
+            bubble.players.forEach { uuid ->
+                proxy.playerOrNull(uuid)?.sendInfo("Player ${event.player.username} has been removed.")
             }
         }.delay(Duration.ofMinutes(10)).schedule()
     }
@@ -387,6 +379,14 @@ class BubbleManager {
 
     fun removeBubble(bubble: Bubble) {
         bubbles.remove(bubble)
+    }
+
+    fun removePlayer(player: Player) {
+        val bubble = getBubbleByPlayer(player) ?: return
+        bubble.players.remove(player.uniqueId)
+        if (bubble.players.isEmpty()) {
+            removeBubble(bubble)
+        }
     }
 
     fun getBubbleByPlayer(player: Player): Bubble? = bubbles.firstOrNull { player.uniqueId in it.players }
