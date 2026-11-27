@@ -6,23 +6,28 @@ import co.aikar.commands.InvalidCommandArgument
 import co.aikar.commands.annotation.*
 import co.aikar.commands.velocity.contexts.OnlinePlayer
 import com.velocitypowered.api.command.CommandSource
+import com.velocitypowered.api.event.Subscribe
+import com.velocitypowered.api.event.connection.DisconnectEvent
+import com.velocitypowered.api.event.connection.PostLoginEvent
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.ProxyServer
+import com.velocitypowered.api.scheduler.ScheduledTask
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.Component.*
 import net.kyori.adventure.text.event.ClickEvent.runCommand
 import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.event.HoverEvent.showText
 import org.openredstone.chattore.*
+import java.time.Duration
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.forEach
 import kotlin.jvm.optionals.getOrNull
 
-private val ShowGlobalChatInBubble = Setting("showGlobalChatInBubble", default = false)
 private const val BUBBLE_OWNED = "bubbleOwned"
 
 fun PluginScope.createBubbleFeature(
     messenger: Messenger,
-    database: Storage,
     chatConfirmations: ChatConfirmations,
     formatConfig: FormatConfig,
     userCache: UserCache,
@@ -57,17 +62,17 @@ fun PluginScope.createBubbleFeature(
         }
         commandCompletions.setDefaultCompletion("players", Array<Player>::class.java)
     }
-    registerCommands(
-        BubbleCommand(
-            messenger,
-            proxy,
-            database,
-            bubbleManager,
-            chatConfirmations,
-            formatConfig,
-            userCache,
-        ),
+    val bubbleStuff = BubbleCommand(
+        messenger,
+        proxy,
+        plugin,
+        bubbleManager,
+        chatConfirmations,
+        formatConfig,
+        userCache,
     )
+    registerCommands(bubbleStuff)
+    registerListeners(bubbleStuff)
     return bubbleManager
 }
 
@@ -76,12 +81,29 @@ fun PluginScope.createBubbleFeature(
 private class BubbleCommand(
     private val messenger: Messenger,
     private val proxy: ProxyServer,
-    private val database: Storage,
+    private val plugin: Any,
     private val bubbleManager: BubbleManager,
     private val chatConfirmations: ChatConfirmations,
     private val formatConfig: FormatConfig,
     private val userCache: UserCache,
 ) : BaseCommand() {
+
+    private val bubbleLeaveJobs = ConcurrentHashMap<UUID, ScheduledTask>()
+
+    @Subscribe
+    fun joinEvent(event: PostLoginEvent) {
+        bubbleLeaveJobs.remove(event.player.uniqueId)?.cancel()
+    }
+
+    @Subscribe
+    fun leaveEvent(event: DisconnectEvent) {
+        val bubble = bubbleManager.getBubbleByPlayer(event.player) ?: return
+        bubbleLeaveJobs[event.player.uniqueId] = proxy.scheduler.buildTask(plugin) { ->
+            bubbleManager.removePlayer(event.player)
+            messenger.excludedFromGlobalChat.remove(event.player.uniqueId)
+            bubble.broadcastInfo("Player ${event.player.username} has been removed.")
+        }.delay(Duration.ofMinutes(1)).schedule()
+    }
 
     @CatchUnknown
     @HelpCommand
@@ -98,10 +120,12 @@ private class BubbleCommand(
     fun create(sender: Player, @ConsumesRest players: Array<Player>) {
         if (bubbleManager.getBubbleByPlayer(sender) != null)
             throw ChattoreException("You are already in a bubble!")
+        val targets = players.toList().filter { it.uniqueId != sender.uniqueId }
+        if (targets.isEmpty())
+            throw ChattoreException("Cannot create an empty bubble!")
         val bubble = bubbleManager.createBubble(sender.uniqueId)
-        addExcluded(sender.uniqueId)
         sender.sendInfo("Bubble created.")
-        sendInvites(sender, bubble, players)
+        sendInvites(sender, bubble, targets)
     }
 
     @Subcommand("invite")
@@ -112,10 +136,10 @@ private class BubbleCommand(
             throw ChattoreException("Your bubble is public, anyone can join without invitation.")
         if (targets.isEmpty())
             throw ChattoreException("Please specify one or more players to invite.")
-        sendInvites(sender, bubble, targets)
+        sendInvites(sender, bubble, targets.toList())
     }
 
-    private fun sendInvites(sender: Player, bubble: Bubble, targets: Array<Player>) {
+    private fun sendInvites(sender: Player, bubble: Bubble, targets: List<Player>) {
         for (player in targets) {
             try {
                 doInvite(sender, bubble, player)
@@ -160,7 +184,6 @@ private class BubbleCommand(
 
         bubble.invitedPlayers.remove(sender.uniqueId)
         bubble.players.add(sender.uniqueId)
-        addExcluded(sender.uniqueId)
         bubble.sendInfos(
             sender,
             "You joined ${player.username}'s bubble.",
@@ -171,13 +194,9 @@ private class BubbleCommand(
     @Subcommand("leave")
     @Description("Leave your current bubble")
     fun leave(sender: Player, bubble: Bubble) {
-        bubble.players.remove(sender.uniqueId)
         messenger.excludedFromGlobalChat.remove(sender.uniqueId)
+        bubbleManager.removePlayer(sender)
         sender.sendInfo("You left the bubble.")
-        if (bubble.players.isEmpty()) {
-            bubbleManager.removeBubble(bubble)
-            return
-        }
         bubble.broadcastInfo("${sender.username} left the bubble.")
         if (bubble.owner == sender.uniqueId) {
             val newOwner = bubble.players.first()
@@ -272,8 +291,7 @@ private class BubbleCommand(
 
     @Subcommand("showglobalchat|sgc")
     @Description("Control the visibility of global chat when in a bubble")
-    fun showGlobalChat(sender: Player, showGlobalChat: Boolean) {
-        database.setSetting(ShowGlobalChatInBubble, sender.uniqueId, showGlobalChat)
+    fun showGlobalChat(sender: Player, bubble: Bubble, showGlobalChat: Boolean) {
         if (showGlobalChat) {
             messenger.excludedFromGlobalChat.remove(sender.uniqueId)
         } else if (bubbleManager.getBubbleByPlayer(sender) != null) {
@@ -314,12 +332,6 @@ private class BubbleCommand(
             proxy.playerOrNull(uuid)?.sendInfo(message)
         }
     }
-
-    private fun addExcluded(uuid: UUID) {
-        if (!database.getSetting(ShowGlobalChatInBubble, uuid)) {
-            messenger.excludedFromGlobalChat.add(uuid)
-        }
-    }
 }
 
 class Bubble(
@@ -351,6 +363,14 @@ class BubbleManager {
 
     fun removeBubble(bubble: Bubble) {
         bubbles.remove(bubble)
+    }
+
+    fun removePlayer(player: Player) {
+        val bubble = getBubbleByPlayer(player) ?: return
+        bubble.players.remove(player.uniqueId)
+        if (bubble.players.isEmpty()) {
+            removeBubble(bubble)
+        }
     }
 
     fun getBubbleByPlayer(player: Player): Bubble? = bubbles.firstOrNull { player.uniqueId in it.players }
