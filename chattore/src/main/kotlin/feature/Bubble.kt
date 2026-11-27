@@ -62,24 +62,17 @@ fun PluginScope.createBubbleFeature(
         }
         commandCompletions.setDefaultCompletion("players", Array<Player>::class.java)
     }
-    registerCommands(
-        BubbleCommand(
-            messenger,
-            proxy,
-            bubbleManager,
-            chatConfirmations,
-            formatConfig,
-            userCache,
-        ),
+    val bubbleStuff = BubbleCommand(
+        messenger,
+        proxy,
+        plugin,
+        bubbleManager,
+        chatConfirmations,
+        formatConfig,
+        userCache,
     )
-    registerListeners(
-        BubbleListener(
-            messenger,
-            proxy,
-            bubbleManager,
-            plugin,
-        )
-    )
+    registerCommands(bubbleStuff)
+    registerListeners(bubbleStuff)
     return bubbleManager
 }
 
@@ -88,11 +81,29 @@ fun PluginScope.createBubbleFeature(
 private class BubbleCommand(
     private val messenger: Messenger,
     private val proxy: ProxyServer,
+    private val plugin: Any,
     private val bubbleManager: BubbleManager,
     private val chatConfirmations: ChatConfirmations,
     private val formatConfig: FormatConfig,
     private val userCache: UserCache,
 ) : BaseCommand() {
+
+    private val bubbleLeaveJobs = ConcurrentHashMap<UUID, ScheduledTask>()
+
+    @Subscribe
+    fun joinEvent(event: PostLoginEvent) {
+        bubbleLeaveJobs.remove(event.player.uniqueId)?.cancel()
+    }
+
+    @Subscribe
+    fun leaveEvent(event: DisconnectEvent) {
+        val bubble = bubbleManager.getBubbleByPlayer(event.player) ?: return
+        bubbleLeaveJobs[event.player.uniqueId] = proxy.scheduler.buildTask(plugin) { ->
+            bubbleManager.removePlayer(event.player)
+            messenger.excludedFromGlobalChat.remove(event.player.uniqueId)
+            bubble.broadcastInfo("Player ${event.player.username} has been removed.")
+        }.delay(Duration.ofMinutes(1)).schedule()
+    }
 
     @CatchUnknown
     @HelpCommand
@@ -320,33 +331,6 @@ private class BubbleCommand(
         players.forEach { uuid ->
             proxy.playerOrNull(uuid)?.sendInfo(message)
         }
-    }
-}
-
-private class BubbleListener(
-    private val messenger: Messenger,
-    private val proxy: ProxyServer,
-    private val bubbleManager: BubbleManager,
-    private val plugin: Any,
-) {
-
-    private val bubbleLeaveJobs = ConcurrentHashMap<UUID, ScheduledTask>()
-
-    @Subscribe
-    fun joinEvent(event: PostLoginEvent) {
-        bubbleLeaveJobs.remove(event.player.uniqueId)?.cancel()
-    }
-
-    @Subscribe
-    fun leaveEvent(event: DisconnectEvent) {
-        val bubble = bubbleManager.getBubbleByPlayer(event.player) ?: return
-        bubbleLeaveJobs[event.player.uniqueId] = proxy.scheduler.buildTask(plugin) { ->
-            bubbleManager.removePlayer(event.player)
-            messenger.excludedFromGlobalChat.remove(event.player.uniqueId)
-            bubble.players.forEach { uuid ->
-                proxy.playerOrNull(uuid)?.sendInfo("Player ${event.player.username} has been removed.")
-            }
-        }.delay(Duration.ofMinutes(10)).schedule()
     }
 }
 
