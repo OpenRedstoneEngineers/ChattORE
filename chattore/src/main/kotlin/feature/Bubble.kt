@@ -77,7 +77,7 @@ fun PluginScope.createBubbleFeature(
             messenger,
             proxy,
             bubbleManager,
-            plugin
+            plugin,
         )
     )
     return bubbleManager
